@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>OKX 合约收益 · 保证金小计算器</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, -apple-system-font, "Segoe UI", sans-serif;
+      background: #f3f4f6;
+      color: #0f172a;
+      padding: 16px;
+    }
+    .app {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-title-main {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .header-title-sub {
+      font-size: 11px;
+      color: #64748b;
+    }
+    .logo {
+      height: 32px;
+      width: 32px;
+      border-radius: 6px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .logo img { height: 100%; width: 100%; display: block; }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 2.1fr) minmax(0, 1.4fr);
+      gap: 12px;
+      margin-top: 4px;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 14px 16px 16px;
+      box-shadow: 0 10px 40px rgba(15,23,42,0.06);
+      border: 1px solid #e2e8f0;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .card-title span.tag {
+      font-size: 10px;
+      font-weight: 500;
+      color: #059669;
+      background: #ecfdf5;
+      border-radius: 999px;
+      padding: 1px 6px;
+      border: 1px solid #bbf7d0;
+    }
+    .section {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px dashed #e2e8f0;
+    }
+    .section:first-of-type {
+      border-top: none;
+      padding-top: 0;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .row label {
+      font-size: 11px;
+      color: #64748b;
+      min-width: 64px;
+    }
+    .chip-group {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .chip {
+      border-radius: 999px;
+      border: 1px solid #e2e8f0;
+      padding: 3px 10px;
+      font-size: 11px;
+      background: #f9fafb;
+      color: #0f172a;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.12s ease-out;
+    }
+    .chip .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #cbd5f5;
+    }
+    .chip.active {
+      background: #0f172a;
+      color: #f9fafb;
+      border-color: #0f172a;
+      box-shadow: 0 4px 15px rgba(15,23,42,0.25);
+    }
+    .chip.active .dot {
+      background: #22c55e;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .field-label {
+      font-size: 11px;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .field-label .hint {
+      font-size: 10px;
+      color: #94a3b8;
+    }
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .input {
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 9px;
+      border: 1px solid #e2e8f0;
+      font-size: 12px;
+      outline: none;
+      background: #f9fafb;
+      color: #0f172a;
+      transition: all 0.12s ease-out;
+    }
+    .input:focus {
+      border-color: #0f172a;
+      background: #ffffff;
+      box-shadow: 0 0 0 1px #0f172a10;
+    }
+    .input-unit {
+      position: absolute;
+      right: 9px;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    .select {
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 9px;
+      border: 1px solid #e2e8f0;
+      font-size: 12px;
+      background: #f9fafb;
+      color: #0f172a;
+      outline: none;
+    }
+    .btn-row {
+      display: flex;
+      justify-content: flex-start;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .btn {
+      border-radius: 999px;
+      padding: 7px 16px;
+      font-size: 12px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn.primary {
+      background: #0f172a;
+      color: #f9fafb;
+      box-shadow: 0 8px 25px rgba(15,23,42,0.25);
+    }
+    .btn.secondary {
+      background: #e5e7eb;
+      color: #0f172a;
+    }
+    .btn .icon {
+      font-size: 13px;
+    }
+    .results-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .result-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f9fafb;
+      border-radius: 10px;
+      padding: 7px 10px;
+      border: 1px solid #e5e7eb;
+      font-size: 12px;
+    }
+    .result-label {
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .result-value {
+      font-variant-numeric: tabular-nums;
+    }
+    .result-value.negative { color: #dc2626; }
+    .result-value.positive { color: #16a34a; }
+    .mode-tag {
+      font-size: 11px;
+      color: #64748b;
+    }
+    .footnote {
+      margin-top: 8px;
+      font-size: 10px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+    .toast {
+      position: fixed;
+      bottom: 12px;
+      right: 12px;
+      background: #0f172a;
+      color: #f9fafb;
+      font-size: 11px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      box-shadow: 0 12px 40px rgba(15,23,42,0.4);
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: all 0.18s ease-out;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .inst-search-wrap {
+      position: relative;
+      flex: 1;
+    }
+    .inst-suggest {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 32px;
+      background: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 18px 45px rgba(15,23,42,0.18);
+      border: 1px solid #e2e8f0;
+      z-index: 20;
+      max-height: 260px;
+      overflow-y: auto;
+      font-size: 12px;
+    }
+    .inst-suggest-item {
+      padding: 6px 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .inst-suggest-item span.code {
+      font-weight: 500;
+      color: #0f172a;
+    }
+    .inst-suggest-item span.meta {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    .inst-suggest-item:hover {
+      background: #f1f5f9;
+    }
+    .inst-suggest-empty {
+      padding: 6px 10px;
+      color: #94a3b8;
+    }
+    .fee-group-label {
+      font-size: 10px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 880px) {
+      .layout {
+        grid-template-columns: minmax(0,1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="logo">
+      <img src="data:image/jpeg;base64,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" alt="OKX Logo" />
+    </div>
+    <div>
+      <div class="header-title-main">合约收益 · 保证金小计算器</div>
+      <div class="header-title-sub">教学 / 试算小工具 · 按 OKX U 本位永续规则估算开仓保证金、收益、手续费</div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="card">
+      <div class="card-title">
+        <span>1. 基本设置</span>
+        <span class="tag">先选类型，再填数字</span>
+      </div>
+      <div class="section">
+        <div class="row">
+          <label>合约类型</label>
+          <div class="chip-group" id="typeGroup">
+            <button type="button" class="chip active" data-type="SWAP">
+              <span class="dot"></span><span>U 本位</span>
+            </button>
+            <button type="button" class="chip" data-type="COIN">
+              <span class="dot"></span><span>B 币本位（预留）</span>
+            </button>
+          </div>
+        </div>
+        <div class="row">
+          <label>方向</label>
+          <div class="chip-group" id="sideGroup">
+            <button type="button" class="chip active" data-side="long">
+              <span class="dot"></span><span>做多</span>
+            </button>
+            <button type="button" class="chip" data-side="short">
+              <span class="dot"></span><span>做空</span>
+            </button>
+          </div>
+        </div>
+        <div class="row">
+          <label>计算</label>
+          <div class="chip-group" id="modeGroup">
+            <button type="button" class="chip active" data-mode="pnl">
+              <span class="dot"></span><span>收益 + 保证金</span>
+            </button>
+            <button type="button" class="chip" data-mode="margin">
+              <span class="dot"></span><span>仅看保证金</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="card-title">2. 选择合约（从 OKX 拉取）</div>
+        <div class="row">
+          <label>合约 ID</label>
+          <div class="inst-search-wrap" id="instSearchWrap">
+            <div class="input-wrap">
+              <input id="instIdInput" class="input" placeholder="输入 btc / eth / swap 等关键字后按 Enter 搜索，或直接输入完整 ID" />
+            </div>
+            <div class="inst-suggest" id="instSuggest" style="display:none;"></div>
+          </div>
+          <button class="btn secondary" type="button" id="loadInstBtn">
+            <span class="icon">⤵︎</span><span>读取合约信息</span>
+          </button>
+        </div>
+        <div class="footnote" id="instInfo">
+          · 新手可以直接输入关键字（例如 btc），按 Enter 后从候选列表中选择；<br />
+          · 若输入完整 ID（例如 BTC-USDT-SWAP），也可以直接点击右侧按钮读取详细信息。
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="card-title">3. 数量 & 价格</div>
+        <div class="row">
+          <label>数量方式</label>
+          <div class="chip-group" id="qtyModeGroup">
+            <button type="button" class="chip active" data-qmode="coin">
+              <span class="dot"></span><span>币数量</span>
+            </button>
+            <button type="button" class="chip" data-qmode="margin">
+              <span class="dot"></span><span>按保证金</span>
+            </button>
+            <button type="button" class="chip" data-qmode="contract">
+              <span class="dot"></span><span>按张数</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="field">
+            <div class="field-label">
+              <span id="qtyLabel">开仓数量</span>
+              <span class="hint" id="qtyHint">按币数量</span>
+            </div>
+            <div class="input-wrap">
+              <input id="qtyInput" class="input" placeholder="例如 0.001" />
+              <span class="input-unit" id="qtyUnit">币</span>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">
+              <span>杠杆倍数</span>
+            </div>
+            <div class="input-wrap">
+              <input id="leverInput" class="input" placeholder="例如 5" />
+              <span class="input-unit">x</span>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">
+              <span>开仓价格</span>
+            </div>
+            <div class="input-wrap">
+              <input id="openPriceInput" class="input" placeholder="例如 3040" />
+              <span class="input-unit" id="pxUnit1">USDT</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid" style="margin-top:6px;">
+          <div class="field">
+            <div class="field-label">
+              <span>平仓价格</span>
+              <span class="hint">可留空，只看保证金</span>
+            </div>
+            <div class="input-wrap">
+              <input id="closePriceInput" class="input" placeholder="例如 3026.4" />
+              <span class="input-unit" id="pxUnit2">USDT</span>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">
+              <span>预估名义金额</span>
+              <span class="hint">根据数量 × 开仓价</span>
+            </div>
+            <div class="input-wrap">
+              <input id="notionalPreview" class="input" disabled />
+              <span class="input-unit" id="notionalUnit">USDT</span>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">
+              <span>保证金币种</span>
+            </div>
+            <div class="input-wrap">
+              <input id="marginCcyInput" class="input" disabled />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="card-title">4. VIP & 手续费</div>
+
+        <div class="row">
+          <label>费率来源</label>
+          <div class="chip-group" id="feeModeGroup">
+            <button type="button" class="chip active" data-feemode="demo">
+              <span>示例 VIP 区间</span>
+            </button>
+            <button type="button" class="chip" data-feemode="manual">
+              <span>手动自定义（%）</span>
+            </button>
+            <button type="button" class="chip" data-feemode="api">
+              <span>从 API 获取</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-grid" id="vipRow" style="margin-top:6px;">
+          <div class="field">
+            <div class="field-label">
+              <span>VIP 等级（示例）</span>
+            </div>
+            <select id="vipLevel" class="select">
+              <option value="Regular">普通</option>
+              <option value="VIP1">VIP 1</option>
+              <option value="VIP2">VIP 2</option>
+              <option value="VIP3">VIP 3</option>
+              <option value="VIP4">VIP 4</option>
+              <option value="VIP5">VIP 5</option>
+              <option value="VIP6">VIP 6</option>
+              <option value="VIP7">VIP 7</option>
+              <option value="VIP8">VIP 8</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="field-label">
+              <span>开仓</span>
+            </div>
+            <select id="openRole" class="select">
+              <option value="maker">挂单 Maker</option>
+              <option value="taker">吃单 Taker</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="field-label">
+              <span>平仓</span>
+            </div>
+            <select id="closeRole" class="select">
+              <option value="maker">挂单 Maker</option>
+              <option value="taker" selected>吃单 Taker</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid" id="manualFeeRow" style="margin-top:6px; display:none;">
+          <div class="field">
+            <div class="field-label">
+              <span>自定义 Maker 费率（%）</span>
+              <span class="hint">例如 0.03 表示 0.03%</span>
+            </div>
+            <div class="input-wrap">
+              <input id="manualMaker" class="input" placeholder="Maker 费率（%）" />
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">
+              <span>自定义 Taker 费率（%）</span>
+              <span class="hint">例如 0.05 表示 0.05%</span>
+            </div>
+            <div class="input-wrap">
+              <input id="manualTaker" class="input" placeholder="Taker 费率（%）" />
+            </div>
+          </div>
+        </div>
+
+        <div class="row" id="apiFeeRow" style="margin-top:6px; display:none;">
+          <button type="button" id="fetchFeeBtn" class="btn secondary">
+            <span class="icon">☁︎</span>
+            <span>从后端 API 拉取当前账户费率</span>
+          </button>
+          <div id="feeSourceLabel" style="font-size:10px;color:#94a3b8;flex:1;">
+            需配合你自己的后端代理（安全保存 OKX API Key）
+          </div>
+        </div>
+
+        <div class="fee-group-label" id="feeGroupLabel">
+          当前费率组别：U 本位永续（示例区间）
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn primary" type="button" id="calcBtn">
+          <span class="icon">＝</span><span>开始计算</span>
+        </button>
+        <button class="btn secondary" type="button" id="resetBtn">
+          <span class="icon">↺</span><span>清空</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>结果</span>
+        <span class="mode-tag" id="modeTag">模式：收益 + 保证金</span>
+      </div>
+      <div class="results-list">
+        <div class="result-item">
+          <div class="result-label">开仓保证金 ≈</div>
+          <div class="result-value" id="resMargin">--</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">开仓手续费</div>
+          <div class="result-value" id="resOpenFee">--</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">平仓手续费</div>
+          <div class="result-value" id="resCloseFee">--</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">预估手续费（开+平）</div>
+          <div class="result-value" id="resTotalFee">--</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">合约收益（不含手续费）</div>
+          <div class="result-value" id="resPnl">--</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">收益率 ROE</div>
+          <div class="result-value" id="resRoe">--</div>
+        </div>
+      </div>
+      <div class="footnote">
+        · 本工具仅用于教学和试算，不构成任何投资建议；<br />
+        · 开仓数量可按币数量 / 保证金 / 张数三种方式输入，内部统一换算；<br />
+        · 手续费分开显示开仓与平仓，并给出合计值；可选示例费率 / 手动自定义（输入百分比） / 通过你自己的后端从 OKX API 获取真实费率；<br />
+        · 实际下单以 OKX 交易页面及个人账户费用为准。
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">已更新设置</div>
+
+<script>
+  let currentType = "SWAP";
+  let currentSide = "long";
+  let currentMode = "pnl";
+  let currentQtyMode = "coin";
+  let currentFeeMode = "demo";
+  let customMaker = null;
+  let customTaker = null;
+  let currentInst = null;
+  let allSwapInstruments = null;
+
+  const instIdInput = document.getElementById("instIdInput");
+  const instInfoEl = document.getElementById("instInfo");
+  const loadInstBtn = document.getElementById("loadInstBtn");
+  const instSuggest = document.getElementById("instSuggest");
+  const instSearchWrap = document.getElementById("instSearchWrap");
+
+  const qtyLabelEl = document.getElementById("qtyLabel");
+  const qtyHintEl = document.getElementById("qtyHint");
+  const qtyUnitEl = document.getElementById("qtyUnit");
+  const qtyInput = document.getElementById("qtyInput");
+  const leverInput = document.getElementById("leverInput");
+  const openPriceInput = document.getElementById("openPriceInput");
+  const closePriceInput = document.getElementById("closePriceInput");
+  const pxUnit1 = document.getElementById("pxUnit1");
+  const pxUnit2 = document.getElementById("pxUnit2");
+  const notionalPreview = document.getElementById("notionalPreview");
+  const notionalUnit = document.getElementById("notionalUnit");
+  const marginCcyInput = document.getElementById("marginCcyInput");
+
+  const vipLevelEl = document.getElementById("vipLevel");
+  const openRoleEl = document.getElementById("openRole");
+  const closeRoleEl = document.getElementById("closeRole");
+
+  const manualMakerEl = document.getElementById("manualMaker");
+  const manualTakerEl = document.getElementById("manualTaker");
+
+  const feeModeGroup = document.getElementById("feeModeGroup");
+  const vipRow = document.getElementById("vipRow");
+  const manualFeeRow = document.getElementById("manualFeeRow");
+  const apiFeeRow = document.getElementById("apiFeeRow");
+  const fetchFeeBtn = document.getElementById("fetchFeeBtn");
+  const feeSourceLabel = document.getElementById("feeSourceLabel");
+  const feeGroupLabel = document.getElementById("feeGroupLabel");
+
+  const typeGroup = document.getElementById("typeGroup");
+  const sideGroup = document.getElementById("sideGroup");
+  const modeGroup = document.getElementById("modeGroup");
+  const qtyModeGroup = document.getElementById("qtyModeGroup");
+
+  const calcBtn = document.getElementById("calcBtn");
+  const resetBtn = document.getElementById("resetBtn");
+
+  const resMargin = document.getElementById("resMargin");
+  const resOpenFee = document.getElementById("resOpenFee");
+  const resCloseFee = document.getElementById("resCloseFee");
+  const resTotalFee = document.getElementById("resTotalFee");
+  const resPnl = document.getElementById("resPnl");
+  const resRoe = document.getElementById("resRoe");
+  const modeTag = document.getElementById("modeTag");
+  const toast = document.getElementById("toast");
+
+  const vipFeeConfig = {
+    SWAP: {
+      Regular: { maker: 0.00020, taker: 0.00050 },
+      VIP1:   { maker: 0.00016, taker: 0.00045 },
+      VIP2:   { maker: 0.00014, taker: 0.00040 },
+      VIP3:   { maker: 0.00012, taker: 0.00035 },
+      VIP4:   { maker: 0.00010, taker: 0.00030 },
+      VIP5:   { maker: 0.00008, taker: 0.00028 },
+      VIP6:   { maker: 0.00006, taker: 0.00026 },
+      VIP7:   { maker: 0.00005, taker: 0.00024 },
+      VIP8:   { maker: 0.00004, taker: 0.00022 }
+    }
+  };
+
+  function fmt(x, decimals) {
+    if (!isFinite(x)) return "--";
+    const d = decimals ?? 4;
+    return Number(x).toFixed(d);
+  }
+  function fmtFee(x) {
+    return fmt(x, 10);
+  }
+  function parseNum(str) {
+    if (str == null) return NaN;
+    const s = String(str).trim();
+    if (!s) return NaN;
+    const n = Number(s);
+    return isFinite(n) ? n : NaN;
+  }
+  function parseNumFromInput(el) {
+    if (!el) return NaN;
+    return parseNum(el.value);
+  }
+  function showToast(msg) {
+    if (msg) toast.textContent = msg;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 1600);
+  }
+
+  function attachChipGroup(group, key) {
+    group.addEventListener("click", (e) => {
+      const btn = e.target.closest(".chip");
+      if (!btn) return;
+      const value = btn.dataset[key];
+      if (!value) return;
+      [...group.querySelectorAll(".chip")].forEach((c) =>
+        c.classList.toggle("active", c === btn)
+      );
+      if (key === "type") {
+        currentType = value;
+        if (currentType !== "SWAP") {
+          showToast("当前版本仅针对 U 本位 SWAP 做了完整校准");
+        }
+        updateFromInst();
+      }
+      if (key === "side") currentSide = value;
+      if (key === "mode") {
+        currentMode = value;
+        updateModeView();
+      }
+      if (key === "qmode") {
+        currentQtyMode = value;
+        updateQtyModeView();
+      }
+      if (key === "feemode") {
+        currentFeeMode = value;
+        updateFeeModeView();
+      }
+    });
+  }
+
+  function updateModeView() {
+    if (currentMode === "pnl") {
+      modeTag.textContent = "模式：收益 + 保证金";
+    } else {
+      modeTag.textContent = "模式：仅看开仓保证金";
+    }
+  }
+
+  function updateQtyModeView() {
+    if (currentQtyMode === "coin") {
+      qtyLabelEl.textContent = "开仓数量";
+      qtyHintEl.textContent = "按币数量";
+      qtyUnitEl.textContent = currentInst?.ctValCcy || currentInst?.baseCcy || "币";
+    } else if (currentQtyMode === "margin") {
+      qtyLabelEl.textContent = "计划投入保证金";
+      qtyHintEl.textContent = "按保证金金额";
+      qtyUnitEl.textContent = currentInst?.settleCcy || "USDT";
+    } else if (currentQtyMode === "contract") {
+      qtyLabelEl.textContent = "开仓张数";
+      qtyHintEl.textContent = "内部按合约面值换算币数量";
+      qtyUnitEl.textContent = "张";
+    }
+    previewNotional();
+  }
+
+  function updateFeeModeView() {
+    if (currentFeeMode === "demo") {
+      vipRow.style.display = "grid";
+      manualFeeRow.style.display = "none";
+      apiFeeRow.style.display = "none";
+    } else if (currentFeeMode === "manual") {
+      vipRow.style.display = "none";
+      manualFeeRow.style.display = "grid";
+      apiFeeRow.style.display = "none";
+    } else if (currentFeeMode === "api") {
+      vipRow.style.display = "none";
+      manualFeeRow.style.display = "none";
+      apiFeeRow.style.display = "flex";
+    }
+  }
+
+  function updateFeeGroupLabel() {
+    let text = "当前费率组别：U 本位永续（示例区间）";
+    if (currentInst) {
+      if (currentInst.instType && currentInst.instType !== "SWAP") {
+        text = "当前合约类型暂未完全支持示例费率，仅做演示";
+      } else if (currentInst.settleCcy && currentInst.settleCcy !== "USDT") {
+        text = "当前为非 USDT 结算合约，示例费率仅供参考";
+      } else {
+        text = "当前费率组别：U 本位永续 / 以 USDT 结算";
+      }
+    }
+    feeGroupLabel.textContent = text;
+  }
+
+  function updateFromInst() {
+    const settle = currentInst?.settleCcy || "USDT";
+    const base = currentInst?.ctValCcy || currentInst?.baseCcy || "币";
+    pxUnit1.textContent = settle;
+    pxUnit2.textContent = settle;
+    notionalUnit.textContent = settle;
+    marginCcyInput.value = settle;
+    qtyUnitEl.textContent = base;
+    previewNotional();
+    updateFeeGroupLabel();
+  }
+
+  function previewNotional() {
+    const qty = parseNumFromInput(qtyInput);
+    const openPx = parseNumFromInput(openPriceInput);
+    if (!isFinite(qty) || !isFinite(openPx)) {
+      notionalPreview.value = "";
+      return;
+    }
+    let qtyCoin;
+    if (currentQtyMode === "coin") {
+      qtyCoin = qty;
+    } else if (currentQtyMode === "margin") {
+      const lev = parseNumFromInput(leverInput);
+      if (!isFinite(lev) || lev <= 0) {
+        notionalPreview.value = "";
+        return;
+      }
+      qtyCoin = (qty * lev) / openPx;
+    } else if (currentQtyMode === "contract") {
+      const ctVal = parseNum(currentInst?.ctVal);
+      if (!isFinite(ctVal) || ctVal <= 0) {
+        notionalPreview.value = "";
+        return;
+      }
+      qtyCoin = qty * ctVal;
+    }
+    const notional = qtyCoin * openPx;
+    if (isFinite(notional)) {
+      notionalPreview.value = fmt(notional, 4);
+    }
+  }
+
+  function compute() {
+    if (currentType !== "SWAP") {
+      alert("当前版本仅对 U 本位永续（SWAP）做了完整校准，币本位暂未启用。");
+      return;
+    }
+
+    const qtyRaw = parseNumFromInput(qtyInput);
+    const lev = parseNumFromInput(leverInput);
+    const openPx = parseNumFromInput(openPriceInput);
+    const closePx = parseNumFromInput(closePriceInput);
+    if (!isFinite(qtyRaw) || qtyRaw <= 0 || !isFinite(lev) || lev <= 0 || !isFinite(openPx) || openPx <= 0) {
+      alert("请先填写开仓数量 / 杠杆 / 开仓价格。");
+      return;
+    }
+
+    let qtyCoin = NaN;
+    if (currentQtyMode === "coin") {
+      qtyCoin = qtyRaw;
+    } else if (currentQtyMode === "margin") {
+      qtyCoin = (qtyRaw * lev) / openPx;
+    } else if (currentQtyMode === "contract") {
+      const ctVal = parseNum(currentInst?.ctVal);
+      if (!isFinite(ctVal) || ctVal <= 0) {
+        alert("当前合约未能读取到 ctVal（面值），请先从 OKX 拉取合约信息。");
+        return;
+      }
+      qtyCoin = qtyRaw * ctVal;
+    }
+
+    if (!isFinite(qtyCoin) || qtyCoin <= 0) {
+      alert("无法换算出有效的币数量，请检查数量 / 面值设置。");
+      return;
+    }
+
+    const sideSign = currentSide === "long" ? 1 : -1;
+    const notionalOpen = qtyCoin * openPx;
+    const margin = notionalOpen / lev;
+
+    let openRate = 0;
+    let closeRate = 0;
+    if (currentFeeMode === "demo") {
+      const level = vipLevelEl.value;
+      const cfg = vipFeeConfig[currentType]?.[level];
+      openRate = cfg ? cfg[openRoleEl.value] : 0;
+      closeRate = cfg ? cfg[closeRoleEl.value] : 0;
+    } else if (currentFeeMode === "manual") {
+      const mPct = parseNumFromInput(manualMakerEl);
+      const tPct = parseNumFromInput(manualTakerEl);
+      const m = isFinite(mPct) ? mPct / 100 : NaN;
+      const t = isFinite(tPct) ? tPct / 100 : NaN;
+      customMaker = m;
+      customTaker = t;
+      openRate = openRoleEl.value === "maker" ? (m || 0) : (t || 0);
+      closeRate = closeRoleEl.value === "maker" ? (m || 0) : (t || 0);
+    } else if (currentFeeMode === "api") {
+      openRate = openRoleEl.value === "maker" ? (customMaker || 0) : (customTaker || 0);
+      closeRate = closeRoleEl.value === "maker" ? (customMaker || 0) : (customTaker || 0);
+    }
+
+    const openFee = notionalOpen * openRate;
+    let closeFee = 0;
+    let pnl = NaN;
+    let roe = NaN;
+
+    if (isFinite(closePx) && closePx > 0 && currentMode === "pnl") {
+      const notionalClose = qtyCoin * closePx;
+      closeFee = notionalClose * closeRate;
+      const diff = (closePx - openPx) * sideSign;
+      pnl = qtyCoin * diff;
+      roe = margin !== 0 ? (pnl / margin) * 100 : NaN;
+    }
+
+    const totalFee = openFee + closeFee;
+    const settle = currentInst?.settleCcy || "USDT";
+
+    resMargin.textContent = fmt(margin, 4) + " " + settle;
+    resOpenFee.textContent = fmtFee(openFee) + " " + settle;
+    resCloseFee.textContent = fmtFee(closeFee) + " " + settle;
+    resTotalFee.textContent = fmtFee(totalFee) + " " + settle;
+
+    if (isFinite(pnl)) {
+      resPnl.textContent = fmt(pnl, 4) + " " + settle;
+      resPnl.classList.toggle("negative", pnl < 0);
+      resPnl.classList.toggle("positive", pnl > 0);
+    } else {
+      resPnl.textContent = "--";
+      resPnl.classList.remove("negative","positive");
+    }
+    if (isFinite(roe)) {
+      resRoe.textContent = fmt(roe, 2) + " %";
+      resRoe.classList.toggle("negative", roe < 0);
+      resRoe.classList.toggle("positive", roe > 0);
+    } else {
+      resRoe.textContent = "--";
+      resRoe.classList.remove("negative","positive");
+    }
+
+    previewNotional();
+  }
+
+  function resetAll() {
+    instIdInput.value = "";
+    instInfoEl.innerHTML =
+      "· 新手可以直接输入关键字（例如 btc），按 Enter 后从候选列表中选择；<br />" +
+      "· 若输入完整 ID（例如 BTC-USDT-SWAP），也可以直接点击右侧按钮读取详细信息。";
+    currentInst = null;
+    qtyInput.value = "";
+    leverInput.value = "";
+    openPriceInput.value = "";
+    closePriceInput.value = "";
+    notionalPreview.value = "";
+    manualMakerEl.value = "";
+    manualTakerEl.value = "";
+    customMaker = null;
+    customTaker = null;
+
+    resMargin.textContent = "--";
+    resOpenFee.textContent = "--";
+    resCloseFee.textContent = "--";
+    resTotalFee.textContent = "--";
+    resPnl.textContent = "--";
+    resRoe.textContent = "--";
+
+    marginCcyInput.value = "USDT";
+    updateFromInst();
+  }
+
+  async function handleLoadInst() {
+    const instId = instIdInput.value.trim();
+    if (!instId) {
+      alert("请先输入合约 ID，例如 ETH-USDT-SWAP");
+      return;
+    }
+    instInfoEl.textContent = "从 OKX 拉取中…";
+    try {
+      const url = "https://www.okx.com/api/v5/public/instruments?instType=SWAP&instId=" + encodeURIComponent(instId);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      if (data.code !== "0" || !data.data || !data.data.length) {
+        throw new Error("返回异常：" + JSON.stringify(data));
+      }
+      currentInst = data.data[0];
+      instInfoEl.textContent =
+        "已读取：" +
+        (currentInst.instId || "") +
+        " · 面值 ctVal=" +
+        (currentInst.ctVal || "?") +
+        " · 计价币=" +
+        (currentInst.ctValCcy || currentInst.baseCcy || "?") +
+        " · 结算币=" +
+        (currentInst.settleCcy || "?");
+      updateFromInst();
+      showToast("已从 OKX 读取合约信息");
+    } catch (e) {
+      console.error(e);
+      instInfoEl.textContent = "拉取失败，请检查合约 ID 或稍后重试。";
+    }
+  }
+
+  async function ensureAllInstruments() {
+    if (allSwapInstruments) return allSwapInstruments;
+    const url = "https://www.okx.com/api/v5/public/instruments?instType=SWAP";
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if (data.code !== "0" || !data.data) throw new Error("返回异常：" + JSON.stringify(data));
+    allSwapInstruments = data.data;
+    return allSwapInstruments;
+  }
+
+  async function searchInstruments() {
+    const keyword = instIdInput.value.trim().toLowerCase();
+    if (!keyword) {
+      instSuggest.style.display = "none";
+      instSuggest.innerHTML = "";
+      return;
+    }
+    instSuggest.style.display = "block";
+    instSuggest.innerHTML = '<div class="inst-suggest-empty">搜索中…</div>';
+    try {
+      const list = await ensureAllInstruments();
+      const matched = list.filter((inst) => {
+        const id = (inst.instId || "").toLowerCase();
+        const base = (inst.baseCcy || "").toLowerCase();
+        const ctCcy = (inst.ctValCcy || "").toLowerCase();
+        return id.includes(keyword) || base.includes(keyword) || ctCcy.includes(keyword);
+      });
+      renderInstSuggestions(matched);
+    } catch (e) {
+      console.error(e);
+      instSuggest.innerHTML = '<div class="inst-suggest-empty">拉取合约列表失败，请稍后再试</div>';
+    }
+  }
+
+  function renderInstSuggestions(list) {
+    if (!list.length) {
+      instSuggest.innerHTML = '<div class="inst-suggest-empty">未找到匹配的合约</div>';
+      return;
+    }
+    instSuggest.innerHTML = "";
+    list.slice(0, 30).forEach((inst) => {
+      const div = document.createElement("div");
+      div.className = "inst-suggest-item";
+      const left = document.createElement("span");
+      left.className = "code";
+      left.textContent = inst.instId;
+      const right = document.createElement("span");
+      right.className = "meta";
+      right.textContent =
+        (inst.ctValCcy || inst.baseCcy || "") +
+        " · 结算币 " +
+        (inst.settleCcy || "") +
+        (inst.instType ? " · " + inst.instType : "");
+      div.appendChild(left);
+      div.appendChild(right);
+      div.addEventListener("click", () => {
+        pickInstrument(inst);
+      });
+      instSuggest.appendChild(div);
+    });
+  }
+
+  function pickInstrument(inst) {
+    currentInst = inst;
+    instIdInput.value = inst.instId || "";
+    instSuggest.style.display = "none";
+    instSuggest.innerHTML = "";
+    instInfoEl.textContent =
+      "已选择：" +
+      (inst.instId || "") +
+      " · 面值 ctVal=" +
+      (inst.ctVal || "?") +
+      " · 计价币=" +
+      (inst.ctValCcy || inst.baseCcy || "?") +
+      " · 结算币=" +
+      (inst.settleCcy || "?");
+    updateFromInst();
+    showToast("已选择合约 " + (inst.instId || ""));
+  }
+
+  const FEE_PROXY_URL = "https://your-domain.com/api/okx-fee";
+
+  async function fetchFeeFromBackend() {
+    if (!currentInst || !currentInst.instId) {
+      feeSourceLabel.textContent = "请先选择合约，再拉取费率";
+      return;
+    }
+    feeSourceLabel.textContent = "拉取中…";
+    try {
+      const url =
+        FEE_PROXY_URL +
+        "?instType=" +
+        encodeURIComponent(currentType) +
+        "&instId=" +
+        encodeURIComponent(currentInst.instId);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      if (typeof data.maker !== "number" || typeof data.taker !== "number") {
+        throw new Error("返回格式不符合预期");
+      }
+      customMaker = data.maker;
+      customTaker = data.taker;
+      feeSourceLabel.textContent =
+        "已从后端加载费率：Maker " + data.maker + " / Taker " + data.taker;
+      showToast("已更新为 API 费率");
+    } catch (e) {
+      console.error(e);
+      feeSourceLabel.textContent = "拉取失败，请检查后端服务或浏览器控制台";
+    }
+  }
+
+  attachChipGroup(typeGroup, "type");
+  attachChipGroup(sideGroup, "side");
+  attachChipGroup(modeGroup, "mode");
+  attachChipGroup(qtyModeGroup, "qmode");
+  attachChipGroup(feeModeGroup, "feemode");
+
+  calcBtn.addEventListener("click", compute);
+  resetBtn.addEventListener("click", resetAll);
+  loadInstBtn.addEventListener("click", handleLoadInst);
+  if (fetchFeeBtn) {
+    fetchFeeBtn.addEventListener("click", fetchFeeFromBackend);
+  }
+
+  openPriceInput.addEventListener("input", previewNotional);
+  qtyInput.addEventListener("input", previewNotional);
+  leverInput.addEventListener("input", previewNotional);
+
+  instIdInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      searchInstruments();
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!instSearchWrap.contains(e.target)) {
+      instSuggest.style.display = "none";
+    }
+  });
+
+  marginCcyInput.value = "USDT";
+  updateModeView();
+  updateFromInst();
+  updateQtyModeView();
+  updateFeeModeView();
+</script>
+</body>
+</html>
