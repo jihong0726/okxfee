@@ -155,7 +155,7 @@
   // ========== 页面骨架 ==========
   document.body.innerHTML = `
     <div class="wrap">
-      <h1>合约计算器（按 Excel 公式）</h1>
+      <h1>合约计算器</h1>
       <div class="subtitle">先选择合约类型，再选择要计算的项目，系统会根据 Excel 公式自动给出需要填写的参数。</div>
 
       <div class="top-row">
