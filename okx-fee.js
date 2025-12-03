@@ -1,137 +1,73 @@
-// api/okx-fee.js
-// 最新版：支持 OKX feeGroup + groupId，同时兼容旧字段。
-// 可直接用于 Vercel / Render / Node.js 无服务器环境。
+<script>
+const G1 = new Set([
+  "BTC-USDT","ETH-USDT","SOL-USDT","DOGE-USDT","BTC-USD",
+  "XRP-USDT","ETH-USD","PEPE-USDT","PUMP-USDT","SUI-USDT"
+]);
 
-import crypto from "crypto";
-
-const OKX_API_KEY = process.env.OKX_API_KEY;
-const OKX_API_SECRET = process.env.OKX_API_SECRET;
-const OKX_API_PASSPHRASE = process.env.OKX_API_PASSPHRASE;
-const OKX_API_PROJECT = process.env.OKX_API_PROJECT || "";
-
-// HMAC-SHA256 签名
-function sign(prehash, secret) {
-  const hmac = crypto.createHmac("sha256", secret);
-  hmac.update(prehash);
-  return hmac.digest("base64");
+function g(inst) {
+  if (!inst || inst.instType !== "SWAP") return "group2";
+  return G1.has(inst.uly) ? "group1" : "group2";
 }
 
-export default async function handler(req, res) {
-  if (req.method !== "GET") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
+const vip = {
+  group1: {
+    Regular:{m:0.00020,t:0.00050},
+    VIP1:{m:0.00018,t:0.00040},
+    VIP2:{m:0.00013,t:0.00035},
+    VIP3:{m:0.00010,t:0.00028},
+    VIP4:{m:0.00008,t:0.00027},
+    VIP5:{m:0.00005,t:0.00026},
+    VIP6:{m:0.00000,t:0.00025},
+    VIP7:{m:-0.00002,t:0.00020},
+    VIP8:{m:-0.00005,t:0.00020},
+    VIP9:{m:-0.00005,t:0.00015},
+  },
+  group2: {
+    Regular:{m:0.00020,t:0.00050},
+    VIP1:{m:0.00018,t:0.00040},
+    VIP2:{m:0.00013,t:0.00035},
+    VIP3:{m:0.00010,t:0.00028},
+    VIP4:{m:0.00008,t:0.00027},
+    VIP5:{m:0.00005,t:0.00026},
+    VIP6:{m:0.00000,t:0.00025},
+    VIP7:{m:-0.00005,t:0.00025},
+    VIP8:{m:-0.00010,t:0.00025},
+    VIP9:{m:-0.00010,t:0.00020},
+  }
+};
+
+let inst = null;
+let feeGroup = "group2";
+let mode = "demo"; // demo / api / manual
+let customM = 0, customT = 0;
+
+async function loadInst(id){
+  const r = await fetch(`https://www.okx.com/api/v5/public/instruments?instType=SWAP&instId=${id}`);
+  const d = await r.json();
+  inst = d.data?.[0];
+  feeGroup = g(inst);
+  document.getElementById("feeGroupLabel").textContent =
+    feeGroup === "group1" ? "Group 1" : "Group 2";
+}
+
+async function fee(){
+  const roleO = document.getElementById("openRole").value;
+  const roleC = document.getElementById("closeRole").value;
+  const v = document.getElementById("vipLevel").value;
+
+  if(mode==="demo"){
+    const c = vip[feeGroup][v];
+    return {maker:c.m, taker:c.t};
   }
 
-  if (!OKX_API_KEY || !OKX_API_SECRET || !OKX_API_PASSPHRASE) {
-    res.status(500).json({ error: "Missing OKX API env variables" });
-    return;
+  if(mode==="manual"){
+    return {maker:customM, taker:customT};
   }
 
-  // 前端会传入：instType + groupId
-  // instType = SWAP / SPOT / FUTURES / OPTION
-  // groupId = OKX feeGroup 的分组 ID
-  const { instType = "SWAP", groupId = "" } = req.query || {};
-
-  try {
-    const timestamp = new Date().toISOString();
-    const method = "GET";
-    const path = "/api/v5/account/trade-fee";
-
-    // 只需要 instType，instId 不一定需要
-    const query = new URLSearchParams({ instType }).toString();
-    const requestPath = `${path}?${query}`;
-
-    const prehash = timestamp + method + requestPath;
-    const signature = sign(prehash, OKX_API_SECRET);
-
-    const headers = {
-      "OK-ACCESS-KEY": OKX_API_KEY,
-      "OK-ACCESS-SIGN": signature,
-      "OK-ACCESS-TIMESTAMP": timestamp,
-      "OK-ACCESS-PASSPHRASE": OKX_API_PASSPHRASE,
-      "Content-Type": "application/json"
-    };
-    if (OKX_API_PROJECT) {
-      headers["OK-ACCESS-PROJECT"] = OKX_API_PROJECT;
-    }
-
-    const url = "https://www.okx.com" + requestPath;
-    const okxRes = await fetch(url, { method, headers });
-
-    if (!okxRes.ok) {
-      const text = await okxRes.text();
-      res.status(502).json({
-        error: "OKX HTTP error",
-        status: okxRes.status,
-        body: text
-      });
-      return;
-    }
-
-    const data = await okxRes.json();
-    if (data.code !== "0") {
-      res.status(502).json({ error: "OKX API error", data });
-      return;
-    }
-
-    const row = (data.data && data.data[0]) || {};
-    let maker = null;
-    let taker = null;
-
-    // ---------------------------
-    // 1. 新版结构：feeGroup 支持
-    // ---------------------------
-    if (Array.isArray(row.feeGroup)) {
-      // 如果前端传入 groupId，找对应分组
-      if (groupId) {
-        const found = row.feeGroup.find(g => String(g.groupId) === String(groupId));
-        if (found) {
-          maker = Number(found.maker);
-          taker = Number(found.taker);
-        }
-      }
-
-      // 如果没找到或没传 groupId，则默认用第一个 feeGroup
-      if (maker === null || taker === null) {
-        const primary = row.feeGroup[0];
-        maker = Number(primary.maker);
-        taker = Number(primary.taker);
-      }
-    }
-
-    // ---------------------------
-    // 2. 兼容旧字段（短期兼容）
-    // ---------------------------
-    if (!Number.isFinite(maker) || !Number.isFinite(taker)) {
-      if (Number.isFinite(Number(row.maker)) && Number.isFinite(Number(row.taker))) {
-        maker = Number(row.maker);
-        taker = Number(row.taker);
-      }
-    }
-
-    // ---------------------------
-    // 3. 再 fallback：兼容 makerU / takerU
-    // ---------------------------
-    if (!Number.isFinite(maker) || !Number.isFinite(taker)) {
-      if (Number.isFinite(Number(row.makerU)) && Number.isFinite(Number(row.takerU))) {
-        maker = Number(row.makerU);
-        taker = Number(row.takerU);
-      }
-    }
-
-    if (!Number.isFinite(maker) || !Number.isFinite(taker)) {
-      res.status(500).json({
-        error: "Cannot parse maker/taker",
-        raw: row
-      });
-      return;
-    }
-
-    res.status(200).json({ maker, taker });
-  } catch (err) {
-    res.status(500).json({
-      error: "Proxy error",
-      detail: String(err)
-    });
+  if(mode==="api"){
+    const gid = feeGroup==="group1"?"4":"5";
+    const r = await fetch(`/api/okx-fee?instType=SWAP&groupId=${gid}`);
+    return await r.json();
   }
 }
+</script>
