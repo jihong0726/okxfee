@@ -1,367 +1,354 @@
-<!DOCTYPE html>
-<html lang="zh">
-<head>
-<meta charset="UTF-8" />
-<title>U本位合约计算器（专业版 UI）</title>
-
-<style>
-/* ===== 全局 ===== */
-*{
-  box-sizing:border-box;
-  transition:0.22s ease;
-}
-body{
-  margin:0; padding:32px;
-  font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background:linear-gradient(135deg,#e9ecf7,#f7f9ff);
-  color:#111;
-}
-
-/* 宽度控制 */
-.wrap{
-  max-width:1200px;
-  margin:0 auto;
-}
-
-/* 标题 */
-h1{
-  margin:0 0 20px;
-  font-size:26px;
-  font-weight:700;
-  letter-spacing:0.5px;
-  color:#1a1a1a;
-}
-
-/* ===== 卡片（玻璃+阴影） ===== */
-.card{
-  background:rgba(255,255,255,0.75);
-  padding:22px 24px;
-  border-radius:18px;
-  margin-bottom:26px;
-  border:1px solid rgba(255,255,255,0.4);
-  backdrop-filter:blur(16px) saturate(180%);
-  -webkit-backdrop-filter:blur(16px) saturate(180%);
-  box-shadow:0 8px 25px rgba(0,0,0,.07);
-}
-.card:hover{
-  transform:translateY(-3px);
-  box-shadow:0 12px 28px rgba(0,0,0,.12);
-}
-
-/* 小标题 */
-h2{
-  margin:0 0 16px;
-  font-size:18px;
-  font-weight:700;
-  color:#222;
-}
-
-/* 输入与选择 */
-label{
-  font-size:13px;
-  font-weight:600;
-  margin-bottom:6px;
-  display:block;
-  color:#333;
-}
-input,select{
-  width:100%;
-  padding:10px 12px;
-  border-radius:10px;
-  border:1px solid rgba(0,0,0,0.12);
-  font-size:14px;
-  background:rgba(255,255,255,0.55);
-  outline:none;
-}
-input:focus,select:focus{
-  border-color:#4d79ff;
-  box-shadow:0 0 0 3px rgba(77,121,255,0.25);
-}
-
-/* ===== 网格 ===== */
-.grid2{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:16px;
-  margin-bottom:10px;
-}
-
-/* ===== 按钮 ===== */
-button{
-  width:100%;
-  padding:14px;
-  margin-top:16px;
-  background:linear-gradient(135deg,#4169ff,#2d47f7);
-  border:none;
-  border-radius:12px;
-  color:white;
-  font-size:16px;
-  font-weight:700;
-  cursor:pointer;
-  letter-spacing:0.4px;
-  box-shadow:0 4px 15px rgba(66,102,255,0.3);
-}
-button:hover{
-  transform:translateY(-2px);
-  box-shadow:0 6px 18px rgba(66,102,255,0.45);
-}
-
-/* ===== 结果显示 ===== */
-.result-block{
-  margin-top:14px;
-  padding:18px;
-  border-radius:14px;
-  background:rgba(243,246,255,0.65);
-  border:1px solid rgba(200,205,255,0.55);
-  font-size:14px;
-  box-shadow:0 4px 18px rgba(0,0,0,0.05);
-}
-.row{
-  display:flex;
-  justify-content:space-between;
-  margin-bottom:8px;
-}
-.row span:first-child{color:#4a4f61;}
-.row.big span:last-child{font-size:17px; font-weight:700; color:#223;}
-</style>
-</head>
-
-<body>
-<div class="wrap">
-
-<h1>U本位合约计算器（专业美化版）</h1>
-
-<!-- 参数输入卡片 -->
-<div class="card">
-  <h2>基础参数</h2>
-
-  <div class="grid2">
-    <div>
-      <label>方向</label>
-      <select id="side">
-        <option value="long">做多</option>
-        <option value="short">做空</option>
-      </select>
-    </div>
-
-    <div>
-      <label>面值</label>
-      <input id="faceValue" type="text" inputmode="decimal" />
-    </div>
-
-    <div>
-      <label>开仓均价</label>
-      <input id="openPx" type="text" inputmode="decimal" />
-    </div>
-
-    <div>
-      <label>平仓均价</label>
-      <input id="closePx" type="text" inputmode="decimal" />
-    </div>
-
-    <div>
-      <label>张数</label>
-      <input id="contracts" type="text" inputmode="decimal" />
-    </div>
-
-    <div>
-      <label>杠杆倍数</label>
-      <input id="leverage" type="text" inputmode="decimal" />
-    </div>
-  </div>
-
-  <h2>手续费（% 输入，可为负）</h2>
-
-  <div class="grid2">
-    <div>
-      <label>Maker（%）</label>
-      <input id="makerFee" type="text" inputmode="decimal" placeholder="例如 -0.02" />
-    </div>
-
-    <div>
-      <label>Taker（%）</label>
-      <input id="takerFee" type="text" inputmode="decimal" placeholder="例如 0.05" />
-    </div>
-
-    <div>
-      <label>开仓使用</label>
-      <select id="openRole">
-        <option value="maker">Maker</option>
-        <option value="taker">Taker</option>
-      </select>
-    </div>
-
-    <div>
-      <label>平仓使用</label>
-      <select id="closeRole">
-        <option value="maker">Maker</option>
-        <option value="taker">Taker</option>
-      </select>
-    </div>
-  </div>
-
-  <h2>风险参数</h2>
-
-  <div class="grid2">
-    <div>
-      <label>标记价格</label>
-      <input id="markPx" type="text" inputmode="decimal" />
-    </div>
-
-    <div>
-      <label>资金费率（%）</label>
-      <input id="fundingRate" type="text" inputmode="decimal" />
-    </div>
-
-    <div>
-      <label>维持保证金率（%）</label>
-      <input id="mmRate" type="text" inputmode="decimal" />
-    </div>
-
-    <div>
-      <label>强平手续费率（%）</label>
-      <input id="liqFeeRate" type="text" inputmode="decimal" />
-    </div>
-
-    <div>
-      <label>保证金余额</label>
-      <input id="marginBalance" type="text" inputmode="decimal" />
-    </div>
-  </div>
-
-  <button onclick="calcU()">计算（Excel 1:1 完整实现）</button>
-</div>
-
-<!-- 输出卡片 -->
-<div class="card">
-  <h2>计算结果</h2>
-  <div id="result" class="result-block">请填写参数并点击计算。</div>
-</div>
-
-</div>
-
-
-<script>
-// 获取数字
-function num(id){
-  let v = document.getElementById(id).value.trim();
-  if(!v) return null;
-  v = v.replace(/,/g,'').replace(/，/g,'');
-  return parseFloat(v);
-}
-
-function pct(v){ return v / 100; }
-
-// 主要计算函数
-function calcU(){
-  const side = document.getElementById("side").value;
-  const face = num("faceValue");
-  const open = num("openPx");
-  const close = num("closePx");
-  const ctt = num("contracts");
-  const lev  = num("leverage");
-
-  const makerPct = num("makerFee");
-  const takerPct = num("takerFee");
-  const openRole  = document.getElementById("openRole").value;
-  const closeRole = document.getElementById("closeRole").value;
-
-  const mark = num("markPx");
-  const fundPct = num("fundingRate");
-  const mmPct   = num("mmRate");
-  const liqPct  = num("liqFeeRate");
-  const mb      = num("marginBalance");
-
-  const result = document.getElementById("result");
-
-  if([face,open,close,ctt,lev].some(v => v===null)){
-    result.innerHTML = "请先输入主要参数再计算。";
-    return;
+// u_perp_calc.js
+(function () {
+  // ===== 注入样式 =====
+  const style = document.createElement("style");
+  style.textContent = `
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:radial-gradient(circle at top,#1b1535 0,#050713 55%,#02030a 100%);
+    color:#f5f5f7;
   }
-
-  const absC = Math.abs(ctt);
-
-  const maker = pct(makerPct || 0);
-  const taker = pct(takerPct || 0);
-
-  const feeOpenRate  = openRole==="maker" ? maker : taker;
-  const feeCloseRate = closeRole==="maker" ? maker : taker;
-
-  // Excel：开仓保证金
-  const margin = face * absC * open / lev;
-
-  // Excel：未扣手续费收益
-  let pnl = side==="long"
-    ? face * absC * (close - open)
-    : face * absC * (open - close);
-
-  // Excel：手续费
-  const feeOpen  = face * absC * open  * feeOpenRate;
-  const feeClose = face * absC * close * feeCloseRate;
-  const feeTotal = feeOpen + feeClose;
-
-  // Excel：最后收益
-  const net = pnl - feeTotal;
-  const roe = margin !== 0 ? net / margin * 100 : 0;
-
-  let html = "";
-  html += row("开仓保证金", margin.toFixed(8));
-  html += row("开仓手续费", feeOpen.toFixed(8));
-  html += row("平仓手续费", feeClose.toFixed(8));
-  html += row("总手续费", feeTotal.toFixed(8));
-  html += row("收益（未扣手续费）", pnl.toFixed(8));
-  html += rowBig("最终收益（含手续费）", net.toFixed(8));
-  html += row("收益率 ROE", roe.toFixed(4)+" %");
-
-  // 仓位价值 + 资金费用
-  let posValue = null, fundingFee = null;
-  if(mark !== null){
-    posValue = face * absC * mark;
-    html += row("仓位价值", posValue.toFixed(8));
-
-    if(fundPct !== null){
-      fundingFee = posValue * pct(fundPct);
-      html += row("资金费用", fundingFee.toFixed(8));
-    }
+  .wrap{
+    max-width:1120px;
+    margin:32px auto 40px;
+    padding:0 16px;
   }
-
-  // 维持保证金
-  if(mark!==null && mmPct!==null){
-    const maint = face * absC * mark * pct(mmPct);
-    html += row("维持保证金", maint.toFixed(8));
+  h1{
+    margin:0 0 18px;
+    font-size:24px;
+    font-weight:700;
+    letter-spacing:.4px;
+    color:#f8fafc;
   }
+  .subtitle{
+    font-size:13px;
+    color:#9ca3af;
+    margin-bottom:18px;
+  }
+  .card{
+    background:linear-gradient(145deg,rgba(21,26,40,.98),rgba(10,13,24,.98));
+    border-radius:16px;
+    padding:18px 20px 20px;
+    border:1px solid rgba(148,163,184,.35);
+    box-shadow:0 18px 40px rgba(0,0,0,.55);
+  }
+  .card + .card{
+    margin-top:18px;
+  }
+  .card-title{
+    font-size:15px;
+    font-weight:650;
+    margin-bottom:12px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .card-title::before{
+    content:"";
+    display:inline-block;
+    width:4px;
+    height:16px;
+    border-radius:999px;
+    background:linear-gradient(180deg,#fbbf24,#f97316);
+  }
+  label{
+    font-size:12px;
+    font-weight:600;
+    margin-bottom:4px;
+    display:block;
+    color:#e5e7eb;
+  }
+  input,select{
+    width:100%;
+    padding:8px 10px;
+    border-radius:10px;
+    border:1px solid rgba(148,163,184,.55);
+    background:rgba(15,23,42,.9);
+    color:#f9fafb;
+    font-size:13px;
+    outline:none;
+  }
+  input::placeholder{color:#6b7280;}
+  input:focus,select:focus{
+    border-color:#fbbf24;
+    box-shadow:0 0 0 1px #f97316;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:12px 14px;
+  }
+  .field{display:flex;flex-direction:column;}
+  .btn-row{
+    display:flex;
+    justify-content:flex-end;
+    margin-top:14px;
+  }
+  .calc-btn{
+    min-width:120px;
+    padding:9px 18px;
+    border-radius:999px;
+    border:none;
+    cursor:pointer;
+    font-size:14px;
+    font-weight:700;
+    letter-spacing:.3px;
+    background:linear-gradient(135deg,#fbbf24,#f97316);
+    color:#111827;
+    box-shadow:0 10px 25px rgba(248,181,55,.45);
+  }
+  .calc-btn:hover{
+    transform:translateY(-1px);
+    box-shadow:0 14px 30px rgba(248,181,55,.65);
+  }
+  .result-block{
+    margin-top:6px;
+    padding:12px 14px;
+    border-radius:14px;
+    background:rgba(15,23,42,.96);
+    border:1px solid rgba(75,85,99,.7);
+    font-size:13px;
+  }
+  .row{
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:6px;
+  }
+  .row span:first-child{
+    color:#9ca3af;
+  }
+  .row span:last-child{
+    color:#e5e7eb;
+    font-weight:600;
+  }
+  .row.big span:last-child{
+    font-size:15px;
+    color:#fef3c7;
+  }
+  @media(max-width:640px){
+    .wrap{margin-top:20px;}
+    h1{font-size:20px;}
+  }
+  `;
+  document.head.appendChild(style);
 
-  // 强平价
-  if(mb!==null && liqPct!==null){
-    const mm = pct(mmPct||0);
-    const lf = pct(liqPct||0);
-    const pos = face * absC;
+  // ===== 注入 HTML 结构 =====
+  document.body.innerHTML = `
+    <div class="wrap">
+      <h1>U本位合约盈亏 & 保证金计算器</h1>
+      <div class="subtitle">适用于：手动输入手续费率（支持负数）、计算盈亏、保证金、资金费用与强平价。</div>
 
-    // 多仓
-    const denomLong = pos*(mm + lf - 1);
-    if(denomLong!==0){
-      const L = (mb - pos*open) / denomLong;
-      html += row("多仓强平价", L.toFixed(8));
+      <div class="card" id="card-input">
+        <div class="card-title">交易与风险参数</div>
+        <div class="grid">
+          <div class="field">
+            <label>方向</label>
+            <select id="side">
+              <option value="long">做多</option>
+              <option value="short">做空</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>面值</label>
+            <input id="faceValue" type="text" inputmode="decimal" />
+          </div>
+          <div class="field">
+            <label>开仓均价</label>
+            <input id="openPx" type="text" inputmode="decimal" />
+          </div>
+          <div class="field">
+            <label>平仓均价</label>
+            <input id="closePx" type="text" inputmode="decimal" />
+          </div>
+          <div class="field">
+            <label>张数</label>
+            <input id="contracts" type="text" inputmode="decimal" />
+          </div>
+          <div class="field">
+            <label>杠杆倍数</label>
+            <input id="leverage" type="text" inputmode="decimal" />
+          </div>
+
+          <div class="field">
+            <label>Maker 手续费（%）</label>
+            <input id="makerFee" type="text" inputmode="decimal" placeholder="例如 -0.02" />
+          </div>
+          <div class="field">
+            <label>Taker 手续费（%）</label>
+            <input id="takerFee" type="text" inputmode="decimal" placeholder="例如 0.05" />
+          </div>
+          <div class="field">
+            <label>开仓使用</label>
+            <select id="openRole">
+              <option value="maker">Maker</option>
+              <option value="taker">Taker</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>平仓使用</label>
+            <select id="closeRole">
+              <option value="maker">Maker</option>
+              <option value="taker">Taker</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>标记价格</label>
+            <input id="markPx" type="text" inputmode="decimal" />
+          </div>
+          <div class="field">
+            <label>资金费率（%）</label>
+            <input id="fundingRate" type="text" inputmode="decimal" />
+          </div>
+          <div class="field">
+            <label>维持保证金率（%）</label>
+            <input id="mmRate" type="text" inputmode="decimal" />
+          </div>
+          <div class="field">
+            <label>强平手续费率（%）</label>
+            <input id="liqFeeRate" type="text" inputmode="decimal" />
+          </div>
+          <div class="field">
+            <label>保证金余额</label>
+            <input id="marginBalance" type="text" inputmode="decimal" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="calc-btn" id="btnCalc">计算</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">计算结果</div>
+        <div id="result" class="result-block">
+          请在上方填写参数后点击「计算」。
+        </div>
+      </div>
+    </div>
+  `;
+
+  // ===== 计算逻辑 =====
+  function getNum(id) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    let v = el.value.trim();
+    if (!v) return null;
+    v = v.replace(/,/g, "").replace(/，/g, "");
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : null;
+  }
+  const pct = (v) => v / 100;
+
+  function calcU() {
+    const side = document.getElementById("side").value;
+    const face = getNum("faceValue");
+    const open = getNum("openPx");
+    const close = getNum("closePx");
+    const ctt = getNum("contracts");
+    const lev = getNum("leverage");
+
+    const makerPct = getNum("makerFee");
+    const takerPct = getNum("takerFee");
+    const openRole = document.getElementById("openRole").value;
+    const closeRole = document.getElementById("closeRole").value;
+
+    const mark = getNum("markPx");
+    const fundPct = getNum("fundingRate");
+    const mmPct = getNum("mmRate");
+    const liqPct = getNum("liqFeeRate");
+    const mb = getNum("marginBalance");
+
+    const resultEl = document.getElementById("result");
+
+    if ([face, open, close, ctt, lev].some((v) => v === null)) {
+      resultEl.innerHTML = "请至少填完：面值 / 开平价格 / 张数 / 杠杆，再点击计算。";
+      return;
     }
 
-    // 空仓
-    const denomShort = pos*(mm + lf + 1);
-    if(denomShort!==0){
-      const S = (mb + pos*open) / denomShort;
-      html += row("空仓强平价", S.toFixed(8));
+    const absC = Math.abs(ctt);
+
+    const maker = pct(makerPct || 0);
+    const taker = pct(takerPct || 0);
+
+    const feeOpenRate = openRole === "maker" ? maker : taker;
+    const feeCloseRate = closeRole === "maker" ? maker : taker;
+
+    // 开仓保证金
+    const margin = face * absC * open / lev;
+
+    // 未扣手续费盈亏
+    let pnl;
+    if (side === "long") {
+      pnl = face * absC * (close - open);
+    } else {
+      pnl = face * absC * (open - close);
     }
+
+    // 手续费
+    const feeOpen = face * absC * open * feeOpenRate;
+    const feeClose = face * absC * close * feeCloseRate;
+    const feeTotal = feeOpen + feeClose;
+
+    const net = pnl - feeTotal;
+    const roe = margin !== 0 ? (net / margin) * 100 : 0;
+
+    let html = "";
+    html += row("开仓保证金", margin, 8);
+    html += row("开仓手续费", feeOpen, 8);
+    html += row("平仓手续费", feeClose, 8);
+    html += row("总手续费", feeTotal, 8);
+    html += row("盈亏（未扣手续费）", pnl, 8);
+    html += rowBig("最终盈亏（含手续费）", net, 8);
+    html += row("收益率 ROE", roe, 4, "%");
+
+    // 仓位价值 + 资金费用
+    if (mark !== null) {
+      const posValue = face * absC * mark;
+      html += row("仓位价值", posValue, 8);
+      if (fundPct !== null) {
+        const fundingFee = posValue * pct(fundPct);
+        html += row("资金费用", fundingFee, 8);
+      }
+    }
+
+    // 维持保证金
+    if (mark !== null && mmPct !== null) {
+      const maint = face * absC * mark * pct(mmPct);
+      html += row("维持保证金", maint, 8);
+    }
+
+    // 强平价
+    if (mb !== null && liqPct !== null) {
+      const mm = pct(mmPct || 0);
+      const lf = pct(liqPct || 0);
+      const pos = face * absC;
+
+      const denomLong = pos * (mm + lf - 1);
+      if (denomLong !== 0) {
+        const L = (mb - pos * open) / denomLong;
+        html += row("多仓强平价", L, 8);
+      }
+      const denomShort = pos * (mm + lf + 1);
+      if (denomShort !== 0) {
+        const S = (mb + pos * open) / denomShort;
+        html += row("空仓强平价", S, 8);
+      }
+    }
+
+    resultEl.innerHTML = html;
   }
 
-  result.innerHTML = html;
-}
+  function row(label, val, dec, suffix) {
+    const v = Number.isFinite(val) ? val.toFixed(dec) : "-";
+    const tail = suffix ? ` ${suffix}` : "";
+    return `<div class="row"><span>${label}</span><span>${v}${tail}</span></div>`;
+  }
+  function rowBig(label, val, dec) {
+    const v = Number.isFinite(val) ? val.toFixed(dec) : "-";
+    return `<div class="row big"><span>${label}</span><span>${v}</span></div>`;
+  }
 
-function row(a,b){
-  return `<div class="row"><span>${a}</span><span>${b}</span></div>`;
-}
-function rowBig(a,b){
-  return `<div class="row big"><span>${a}</span><span>${b}</span></div>`;
-}
-</script>
-
-</body>
-</html>
+  document.getElementById("btnCalc").addEventListener("click", calcU);
+})();
