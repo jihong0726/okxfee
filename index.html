@@ -2,28 +2,48 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8" />
-<title>OKX 合约手续费计算器（极简版）</title>
+<title>OKX 合约收益 & 手续费计算器（完整版）</title>
 <style>
-  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 30px; }
-  .box { max-width: 380px; border: 1px solid #ddd; padding: 20px; border-radius: 14px; }
-  label { font-weight: bold; margin-top: 12px; display: block; }
-  input, select {
-    width: 100%; padding: 10px; font-size: 15px;
-    border-radius: 8px; border: 1px solid #ccc; margin-top: 6px;
-  }
-  button {
-    width: 100%; padding: 12px; background:#0068ff; 
-    border:none; border-radius:8px; margin-top:20px;
-    color:#fff; font-size:16px; font-weight:bold;
-  }
-  .result { margin-top: 20px; font-size: 18px; font-weight: bold; }
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 24px; background: #f7f9fb; }
+.container { max-width: 1080px; margin: auto; display: flex; gap: 20px; }
+.box { background: #fff; padding: 20px; border-radius: 14px; flex: 1; border:1px solid #e5e7eb; }
+h2 { margin-top:0; }
+label { font-weight: bold; margin-top: 12px; display: block; }
+input, select {
+  width: 100%; padding: 10px; border-radius: 6px;
+  border: 1px solid #d0d0d0; margin-top:6px; font-size:15px;
+}
+button {
+  width:100%; padding:12px; background:#005cff; color:#fff;
+  font-size:16px; border:none; border-radius:6px; margin-top:18px; cursor:pointer;
+}
+button:hover{ opacity:0.9; }
+.result { margin-top:25px; padding:14px; background:#eef2ff; border-radius:8px; font-size:17px; }
+.row2 { display: flex; gap: 12px; }
+.row2 .col { flex: 1; }
+.small { font-size: 13px; color: #777; }
 </style>
 </head>
+
 <body>
+
+<div class="container">
 
 <div class="box">
 
-  <h2>OKX 合约手续费计算器</h2>
+  <h2>交易参数</h2>
+
+  <label>方向</label>
+  <select id="side">
+    <option value="long">做多</option>
+    <option value="short">做空</option>
+  </select>
+
+  <label>数量模式</label>
+  <select id="qtyMode">
+    <option value="coin">币数量（张）</option>
+    <option value="notional">名义价值（USDT）</option>
+  </select>
 
   <label>开仓价格</label>
   <input id="openPx" type="number" step="0.0001" />
@@ -31,14 +51,47 @@
   <label>平仓价格</label>
   <input id="closePx" type="number" step="0.0001" />
 
-  <label>数量（币）</label>
+  <label id="qtyLabel">数量（币）</label>
   <input id="qty" type="number" step="0.0001" />
 
-  <label>Maker 手续费率（如 0.0002）</label>
-  <input id="maker" type="number" step="0.00001" />
+  <label>杠杆倍数</label>
+  <input id="leverage" type="number" value="10" />
 
-  <label>Taker 手续费率（如 0.0005）</label>
-  <input id="taker" type="number" step="0.00001" />
+</div>
+
+
+<div class="box">
+
+  <h2>手续费区块</h2>
+
+  <label>手续费模式</label>
+  <select id="feeMode" onchange="toggleFeeMode()">
+    <option value="vip">按 VIP 等级</option>
+    <option value="manual">手动输入</option>
+  </select>
+
+  <div id="vipBlock">
+
+    <label>VIP 等级</label>
+    <select id="vipLevel" onchange="fillVipFee()">
+      <option>Regular</option>
+      <option>VIP1</option>
+      <option>VIP2</option>
+      <option>VIP3</option>
+      <option>VIP4</option>
+      <option>VIP5</option>
+      <option>VIP6</option>
+      <option>VIP7</option>
+      <option>VIP8</option>
+      <option>VIP9</option>
+    </select>
+  </div>
+
+  <label>Maker 手续费率</label>
+  <input id="maker" type="number" step="0.000001" />
+
+  <label>Taker 手续费率</label>
+  <input id="taker" type="number" step="0.000001" />
 
   <label>开仓类型</label>
   <select id="openRole">
@@ -52,31 +105,109 @@
     <option value="taker">Taker</option>
   </select>
 
-  <button onclick="calc()">计算手续费</button>
+</div>
 
-  <div class="result" id="result"></div>
+
+<div class="box">
+
+  <h2>结果</h2>
+
+  <button onclick="calc()">计算</button>
+
+  <div class="result" id="result">请填写后计算</div>
+
+</div>
 
 </div>
 
 <script>
-function calc() {
+// ===============================
+// VIP 费率表（你可随时调整）
+// ===============================
+const VIP = {
+  Regular:{m:0.00020, t:0.00050},
+  VIP1:{m:0.00018, t:0.00040},
+  VIP2:{m:0.00013, t:0.00035},
+  VIP3:{m:0.00010, t:0.00028},
+  VIP4:{m:0.00008, t:0.00027},
+  VIP5:{m:0.00005, t:0.00026},
+  VIP6:{m:0.00000, t:0.00025},
+  VIP7:{m:-0.00002,t:0.00020},
+  VIP8:{m:-0.00005,t:0.00020},
+  VIP9:{m:-0.00005,t:0.00015}
+};
+
+function toggleFeeMode(){
+  const mode = document.getElementById("feeMode").value;
+  document.getElementById("vipBlock").style.display =
+    mode==="vip" ? "block" : "none";
+}
+
+function fillVipFee(){
+  const v = VIP[ document.getElementById("vipLevel").value ];
+  document.getElementById("maker").value = v.m;
+  document.getElementById("taker").value = v.t;
+}
+
+document.getElementById("qtyMode").addEventListener("change",()=>{
+  document.getElementById("qtyLabel").textContent =
+    document.getElementById("qtyMode").value==="coin"
+    ? "数量（币）"
+    : "名义价值（USDT）";
+});
+
+// ===============================
+// 计算公式（完全匹配 OKX U 本位永续）
+// ===============================
+
+function calc(){
+  const side = document.getElementById("side").value;
+  const qtyMode = document.getElementById("qtyMode").value;
+
   const openPx = Number(document.getElementById("openPx").value);
   const closePx = Number(document.getElementById("closePx").value);
-  const qty = Number(document.getElementById("qty").value);
+  const q = Number(document.getElementById("qty").value);
+  const lev = Number(document.getElementById("leverage").value);
+
   const maker = Number(document.getElementById("maker").value);
   const taker = Number(document.getElementById("taker").value);
+
   const openRole = document.getElementById("openRole").value;
   const closeRole = document.getElementById("closeRole").value;
 
-  const openRate = openRole === "maker" ? maker : taker;
-  const closeRate = closeRole === "maker" ? maker : taker;
+  // 数量转换
+  let qty = q;
+  if(qtyMode==="notional"){
+    qty = q / openPx;
+  }
 
-  const openFee = qty * openPx * openRate;
-  const closeFee = qty * closePx * closeRate;
-  const total = openFee + closeFee;
+  // 手续费率选择
+  const openFeeRate  = openRole==="maker" ? maker : taker;
+  const closeFeeRate = closeRole==="maker" ? maker : taker;
 
-  document.getElementById("result").textContent =
-    "总手续费：" + total.toFixed(6);
+  // 手续费 = 数量 * 价格 * 费率
+  const openFee  = qty * openPx * openFeeRate;
+  const closeFee = qty * closePx * closeFeeRate;
+
+  // 盈亏
+  let pnl = 0;
+  if(side==="long"){
+    pnl = qty * (closePx - openPx);
+  } else {
+    pnl = qty * (openPx - closePx);
+  }
+
+  const totalFee = openFee + closeFee;
+  const final = pnl - totalFee;
+
+  document.getElementById("result").innerHTML = `
+    <div>开仓手续费：${openFee.toFixed(6)} USDT</div>
+    <div>平仓手续费：${closeFee.toFixed(6)} USDT</div>
+    <div>总手续费：${totalFee.toFixed(6)} USDT</div>
+    <div>盈亏（扣除手续费前）：${pnl.toFixed(6)} USDT</div>
+    <hr/>
+    <div><b>最终盈亏：${final.toFixed(6)} USDT</b></div>
+  `;
 }
 </script>
 
