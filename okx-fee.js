@@ -1,73 +1,119 @@
-<script>
-const G1 = new Set([
-  "BTC-USDT","ETH-USDT","SOL-USDT","DOGE-USDT","BTC-USD",
-  "XRP-USDT","ETH-USD","PEPE-USDT","PUMP-USDT","SUI-USDT"
-]);
+<div class="left-panel">
 
-function g(inst) {
-  if (!inst || inst.instType !== "SWAP") return "group2";
-  return G1.has(inst.uly) ? "group1" : "group2";
+  <div class="section">
+    <label>合约</label>
+    <select id="instSelect" onchange="loadInst(this.value)">
+      <option value="BTC-USDT-SWAP">BTC-USDT-SWAP</option>
+      <option value="ETH-USDT-SWAP">ETH-USDT-SWAP</option>
+      <option value="SOL-USDT-SWAP">SOL-USDT-SWAP</option>
+      <!-- 你自己的清单可以继续加 -->
+    </select>
+  </div>
+
+  <div class="section">
+    <label>手续费模式</label>
+    <select id="feeMode" onchange="mode=this.value">
+      <option value="demo">示例手续费</option>
+      <option value="api">实际费率(API)</option>
+      <option value="manual">自定义</option>
+    </select>
+  </div>
+
+  <div class="section" id="vipBox">
+    <label>用户等级</label>
+    <select id="vipLevel">
+      <option>Regular</option>
+      <option>VIP1</option>
+      <option>VIP2</option>
+      <option>VIP3</option>
+      <option>VIP4</option>
+      <option>VIP5</option>
+      <option>VIP6</option>
+      <option>VIP7</option>
+      <option>VIP8</option>
+      <option>VIP9</option>
+    </select>
+  </div>
+
+  <div class="section" id="manualBox" style="display:none;">
+    <label>Maker</label>
+    <input id="manualMaker" type="number" step="0.00001"/>
+    <label>Taker</label>
+    <input id="manualTaker" type="number" step="0.00001"/>
+  </div>
+
+  <div class="section">
+    <label>开仓类型</label>
+    <select id="openRole">
+      <option value="maker">Maker</option>
+      <option value="taker">Taker</option>
+    </select>
+  </div>
+
+  <div class="section">
+    <label>平仓类型</label>
+    <select id="closeRole">
+      <option value="maker">Maker</option>
+      <option value="taker">Taker</option>
+    </select>
+  </div>
+
+  <div class="section">
+    <label>数量</label>
+    <input id="qtyInput" type="number" placeholder="输入数量">
+  </div>
+
+  <div class="section">
+    <label>价格</label>
+    <input id="priceInput" type="number" placeholder="输入价格">
+  </div>
+
+  <div class="section">
+    <button onclick="calc()">计算</button>
+  </div>
+
+  <div class="section fee-group">
+    <span id="feeGroupLabel">Group 未载入</span>
+  </div>
+
+</div>
+
+<style>
+.left-panel {
+  width: 310px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-const vip = {
-  group1: {
-    Regular:{m:0.00020,t:0.00050},
-    VIP1:{m:0.00018,t:0.00040},
-    VIP2:{m:0.00013,t:0.00035},
-    VIP3:{m:0.00010,t:0.00028},
-    VIP4:{m:0.00008,t:0.00027},
-    VIP5:{m:0.00005,t:0.00026},
-    VIP6:{m:0.00000,t:0.00025},
-    VIP7:{m:-0.00002,t:0.00020},
-    VIP8:{m:-0.00005,t:0.00020},
-    VIP9:{m:-0.00005,t:0.00015},
-  },
-  group2: {
-    Regular:{m:0.00020,t:0.00050},
-    VIP1:{m:0.00018,t:0.00040},
-    VIP2:{m:0.00013,t:0.00035},
-    VIP3:{m:0.00010,t:0.00028},
-    VIP4:{m:0.00008,t:0.00027},
-    VIP5:{m:0.00005,t:0.00026},
-    VIP6:{m:0.00000,t:0.00025},
-    VIP7:{m:-0.00005,t:0.00025},
-    VIP8:{m:-0.00010,t:0.00025},
-    VIP9:{m:-0.00010,t:0.00020},
-  }
-};
+.section { display: flex; flex-direction: column; gap: 6px; }
 
-let inst = null;
-let feeGroup = "group2";
-let mode = "demo"; // demo / api / manual
-let customM = 0, customT = 0;
+label { font-size: 14px; font-weight: 600; }
 
-async function loadInst(id){
-  const r = await fetch(`https://www.okx.com/api/v5/public/instruments?instType=SWAP&instId=${id}`);
-  const d = await r.json();
-  inst = d.data?.[0];
-  feeGroup = g(inst);
-  document.getElementById("feeGroupLabel").textContent =
-    feeGroup === "group1" ? "Group 1" : "Group 2";
+select, input {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  font-size: 14px;
 }
 
-async function fee(){
-  const roleO = document.getElementById("openRole").value;
-  const roleC = document.getElementById("closeRole").value;
-  const v = document.getElementById("vipLevel").value;
-
-  if(mode==="demo"){
-    const c = vip[feeGroup][v];
-    return {maker:c.m, taker:c.t};
-  }
-
-  if(mode==="manual"){
-    return {maker:customM, taker:customT};
-  }
-
-  if(mode==="api"){
-    const gid = feeGroup==="group1"?"4":"5";
-    const r = await fetch(`/api/okx-fee?instType=SWAP&groupId=${gid}`);
-    return await r.json();
-  }
+button {
+  padding: 10px;
+  font-size: 15px;
+  font-weight: bold;
+  background: #0068ff;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
 }
-</script>
+
+button:hover { opacity: 0.9; }
+
+.fee-group {
+  text-align: center;
+  font-weight: bold;
+  color: #666;
+}
+</style>
