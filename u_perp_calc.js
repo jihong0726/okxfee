@@ -1,6 +1,6 @@
 // u_perp_calc.js
 (function () {
-  // ===== 注入样式 =====
+  // ===== 样式 =====
   const style = document.createElement("style");
   style.textContent = `
   *{box-sizing:border-box;}
@@ -16,7 +16,7 @@
     padding:0 16px;
   }
   h1{
-    margin:0 0 18px;
+    margin:0 0 10px;
     font-size:24px;
     font-weight:700;
     letter-spacing:.4px;
@@ -58,6 +58,13 @@
     font-weight:600;
     margin:12px 0 6px;
     color:#e5e7eb;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .block-title span.tip{
+    font-size:11px;
+    color:#9ca3af;
   }
   label{
     font-size:12px;
@@ -148,16 +155,19 @@
   `;
   document.head.appendChild(style);
 
-  // ===== 注入 HTML 结构 =====
+  // ===== 结构 =====
   document.body.innerHTML = `
     <div class="wrap">
-      <h1>U本位合约盈亏 & 保证金计算器</h1>
-      <div class="subtitle">手动输入挂单 / 吃单手续费（支持负数），计算盈亏、保证金、资金费用与预估强平价。</div>
+      <h1>U本位合约盈亏与保证金计算器</h1>
+      <div class="subtitle">支持手动输入挂单 / 吃单手续费（可为负），同时计算盈亏、保证金、资金费用与预估强平价格。</div>
 
       <div class="card" id="card-input">
-        <div class="card-title">U本位参数设置</div>
+        <div class="card-title">参数填写</div>
 
-        <div class="block-title">基础参数</div>
+        <div class="block-title">
+          <span>一、基础参数</span>
+          <span class="tip">用于计算开仓保证金与基础盈亏</span>
+        </div>
         <div class="grid">
           <div class="field">
             <label>方向</label>
@@ -188,7 +198,10 @@
           </div>
         </div>
 
-        <div class="block-title">手续费（单位：%，可为负）</div>
+        <div class="block-title">
+          <span>二、手续费设置</span>
+          <span class="tip">单位为百分比，例如 0.05 表示 0.05%</span>
+        </div>
         <div class="grid">
           <div class="field">
             <label>挂单手续费（%）</label>
@@ -199,14 +212,14 @@
             <input id="takerFee" type="text" inputmode="decimal" placeholder="例如 0.05" />
           </div>
           <div class="field">
-            <label>开仓使用</label>
+            <label>开仓使用费率</label>
             <select id="openRole">
               <option value="maker">挂单</option>
               <option value="taker">吃单</option>
             </select>
           </div>
           <div class="field">
-            <label>平仓使用</label>
+            <label>平仓使用费率</label>
             <select id="closeRole">
               <option value="maker">挂单</option>
               <option value="taker">吃单</option>
@@ -214,7 +227,10 @@
           </div>
         </div>
 
-        <div class="block-title">风险参数</div>
+        <div class="block-title">
+          <span>三、资金费用相关参数</span>
+          <span class="tip">用于计算资金费用与仓位价值</span>
+        </div>
         <div class="grid">
           <div class="field">
             <label>标记价格</label>
@@ -224,6 +240,13 @@
             <label>资金费率（%）</label>
             <input id="fundingRate" type="text" inputmode="decimal" />
           </div>
+        </div>
+
+        <div class="block-title">
+          <span>四、强平相关参数</span>
+          <span class="tip">用于计算维持保证金与预估强平价格</span>
+        </div>
+        <div class="grid">
           <div class="field">
             <label>维持保证金率（%）</label>
             <input id="mmRate" type="text" inputmode="decimal" />
@@ -252,7 +275,7 @@
     </div>
   `;
 
-  // ===== 计算逻辑 =====
+  // ===== 工具函数 =====
   function getNum(id) {
     const el = document.getElementById(id);
     if (!el) return null;
@@ -264,6 +287,7 @@
   }
   const pct = (v) => v / 100;
 
+  // ===== 主计算 =====
   function calcU() {
     const side = document.getElementById("side").value;
     const face = getNum("faceValue");
@@ -286,7 +310,7 @@
     const resultEl = document.getElementById("result");
 
     if ([face, open, close, ctt, lev].some(v => v === null)) {
-      resultEl.innerHTML = "请至少填完：面值 / 开仓价 / 平仓价 / 张数 / 杠杆，然后再计算。";
+      resultEl.innerHTML = "请至少填写：面值、开仓均价、平仓均价、张数、杠杆倍数，然后再点击计算。";
       return;
     }
 
@@ -315,36 +339,38 @@
     const feeTotal = feeOpen + feeClose;
 
     const net = pnl - feeTotal;
-    const roe = margin !== 0 ? (net / margin) * 100 : 0;
+    const rate = margin !== 0 ? (net / margin) * 100 : 0;
 
     let html = "";
 
-    // 收益与手续费
-    html += `<div class="sub-title">收益与手续费</div>`;
-    html += row("开仓保证金", margin, 8);
+    // 一、收益与手续费
+    html += `<div class="sub-title">一、收益与手续费明细</div>`;
+    html += row("开仓所需保证金", margin, 8);
     html += row("开仓手续费", feeOpen, 8);
     html += row("平仓手续费", feeClose, 8);
-    html += row("总手续费", feeTotal, 8);
+    html += row("手续费合计", feeTotal, 8);
     html += row("盈亏（未扣手续费）", pnl, 8);
-    html += rowBig("最终盈亏（含手续费）", net, 8);
-    html += row("收益率 ROE", roe, 4, "%");
+    html += rowBig("实际盈亏（含手续费）", net, 8);
+    html += row("收益率（以开仓保证金为基准）", rate, 4, "%");
 
-    // 资金与仓位
+    // 二、资金费用与仓位
     if (mark !== null || fundPct !== null) {
-      html += `<div class="sub-title">资金费 & 仓位</div>`;
+      html += `<div class="sub-title">二、资金费用与仓位情况</div>`;
       if (mark !== null) {
         const posValue = face * absC * mark;
-        html += row("仓位价值", posValue, 8);
+        html += row("当前仓位名义价值", posValue, 8);
         if (fundPct !== null) {
           const fundingFee = posValue * pct(fundPct);
-          html += row("资金费用", fundingFee, 8);
+          html += row("单次资金费用", fundingFee, 8);
         }
+      } else {
+        html += `<div class="row"><span>提示</span><span>如需计算资金费用，请填写标记价格与资金费率。</span></div>`;
       }
     }
 
-    // 保证金与强平
+    // 三、保证金与预估强平价
     if ((mark !== null && mmPct !== null) || (mb !== null && liqPct !== null)) {
-      html += `<div class="sub-title">维持保证金 & 预估强平价</div>`;
+      html += `<div class="sub-title">三、维持保证金与预估强平价格</div>`;
     }
 
     if (mark !== null && mmPct !== null) {
@@ -360,12 +386,12 @@
       const denomLong = pos * (mm + lf - 1);
       if (denomLong !== 0) {
         const L = (mb - pos * open) / denomLong;
-        html += row("多仓强平价", L, 8);
+        html += row("多仓预估强平价格", L, 8);
       }
       const denomShort = pos * (mm + lf + 1);
       if (denomShort !== 0) {
         const S = (mb + pos * open) / denomShort;
-        html += row("空仓强平价", S, 8);
+        html += row("空仓预估强平价格", S, 8);
       }
     }
 
