@@ -1,6 +1,5 @@
 // u_perp_calc.js
-// 合约类型 + 计算项目二级选择版
-// 所有公式来源：Excel《U本位合约》《币本位合约》《开仓均价 合约 U+币本》说明行
+// 合约类型 + 计算项目二级选择版（放大展示版）
 
 (function () {
   // ========== 样式 ==========
@@ -12,94 +11,98 @@
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
     background:#0b0f19;
     color:#f5f5f7;
+    font-size:13px;
   }
   .wrap{
     max-width:1240px;
-    margin:20px auto;
-    padding:0 16px;
+    margin:22px auto;
+    padding:0 18px;
   }
   h1{
-    margin:0 0 6px;
-    font-size:22px;
+    margin:0 0 8px;
+    font-size:24px;
     font-weight:700;
     color:#f8fafc;
   }
   .subtitle{
-    font-size:12px;
+    font-size:13px;
     color:#9ca3af;
-    margin-bottom:10px;
+    margin-bottom:12px;
   }
 
   .top-row{
     display:flex;
     flex-wrap:wrap;
-    gap:10px;
-    margin-bottom:12px;
+    gap:12px;
+    margin-bottom:14px;
     align-items:center;
   }
   .top-row label{
-    font-size:12px;
+    font-size:13px;
     color:#cbd5e1;
     margin-right:4px;
   }
   .top-row select{
-    min-width:150px;
-    padding:6px 10px;
+    min-width:170px;
+    padding:7px 12px;
     border-radius:999px;
     border:1px solid rgba(148,163,184,.5);
     background:#111827;
     color:#f9fafb;
-    font-size:12px;
+    font-size:13px;
   }
 
   .row-2col{
     display:grid;
-    grid-template-columns: 1fr 380px;
-    gap:16px;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap:18px;
     align-items:flex-start;
   }
 
   .card{
     background:#111726;
-    border-radius:12px;
-    padding:14px 16px 16px;
-    border:1px solid rgba(255,255,255,0.07);
+    border-radius:14px;
+    padding:16px 18px 18px;
+    border:1px solid rgba(255,255,255,0.09);
   }
   .card-title{
-    font-size:14px;
-    font-weight:650;
-    margin-bottom:6px;
+    font-size:15px;
+    font-weight:700;
+    margin-bottom:8px;
     color:#fff;
   }
   .block-title{
-    font-size:12px;
+    font-size:13px;
     font-weight:600;
-    margin:8px 0 4px;
+    margin:10px 0 6px;
     color:#e5e7eb;
   }
 
   .grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-    gap:8px 10px;
+    grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+    gap:9px 12px;
   }
   .field{
     display:flex;
     flex-direction:column;
   }
   .field label{
-    font-size:11px;
-    margin-bottom:3px;
+    font-size:12px;
+    margin-bottom:4px;
     color:#cbd5e1;
   }
   input,select.param{
     width:100%;
-    padding:6px 8px;
-    border-radius:8px;
+    padding:7px 9px;
+    border-radius:9px;
     border:1px solid rgba(148,163,184,.45);
     background:#0f172a;
     color:#f9fafb;
-    font-size:12px;
+    font-size:13px;
+  }
+  input::placeholder{
+    color:#6b7280;
   }
   input:focus,select.param:focus{
     border-color:#fbbf24;
@@ -108,42 +111,60 @@
 
   .calc-btn{
     width:100%;
-    margin-top:10px;
-    padding:8px 12px;
-    border-radius:8px;
+    margin-top:12px;
+    padding:9px 14px;
+    border-radius:9px;
     border:none;
     cursor:pointer;
-    font-size:13px;
+    font-size:14px;
     font-weight:700;
     background:linear-gradient(135deg,#fbbf24,#f97316);
     color:#111827;
   }
 
   #result{
-    font-size:12px;
+    font-size:13px;
     color:#e5e7eb;
   }
   .sub-title{
-    margin:8px 0 4px;
-    font-size:12px;
-    font-weight:650;
+    margin:10px 0 6px;
+    font-size:13px;
+    font-weight:700;
     border-left:3px solid #f97316;
-    padding-left:6px;
+    padding-left:8px;
     color:#fff;
   }
   .row-item{
     display:flex;
     justify-content:space-between;
-    padding:2px 0;
+    padding:4px 0;
   }
-  .row-item span:first-child{color:#9ca3af;}
-  .row-item span:last-child{font-weight:600;color:#f8fafc;}
-  .row-item.big span:last-child{font-size:13px;color:#fef3c7;}
+  .row-item span:first-child{
+    color:#9ca3af;
+    font-size:13px;
+  }
+  .row-item span:last-child{
+    font-weight:650;
+    color:#f8fafc;
+    font-size:14px;
+  }
+  .row-item.big{
+    margin-top:4px;
+    margin-bottom:4px;
+  }
+  .row-item.big span:first-child{
+    font-size:14px;
+  }
+  .row-item.big span:last-child{
+    font-size:18px;
+    color:#fef3c7;
+  }
 
   .hint{
-    font-size:11px;
+    font-size:12px;
     color:#9ca3af;
-    margin-top:4px;
+    margin-top:6px;
+    line-height:1.4;
   }
 
   @media(max-width:900px){
@@ -155,7 +176,7 @@
   // ========== 页面骨架 ==========
   document.body.innerHTML = `
     <div class="wrap">
-      <h1>合约计算器</h1>
+      <h1>合约计算器（按 Excel 公式）</h1>
       <div class="subtitle">先选择合约类型，再选择要计算的项目，系统会根据 Excel 公式自动给出需要填写的参数。</div>
 
       <div class="top-row">
@@ -174,7 +195,7 @@
           <label>要计算的项目</label>
           <select id="calcItem">
             <option value="开仓均价">开仓均价</option>
-            <option value="手续费">手续费</option>
+            <option value="手续费">手续费</</option>
             <option value="合约收益">合约收益</option>
             <option value="收益率">收益率</option>
             <option value="开仓保证金（初始）">开仓保证金（初始）</option>
@@ -344,7 +365,6 @@
     newPrice: "新开仓成交均价"
   };
 
-  // 每个「合约类型 + 计算项目」需要哪些字段
   const REQUIRED = {
     "U本位合约": {
       "开仓均价": ["faceValue","origQty","origPrice","newQty","newPrice"],
@@ -377,7 +397,6 @@
     }
   };
 
-  // ========== 工具函数 ==========
   const $ = id => document.getElementById(id);
 
   function getNum(id) {
@@ -396,7 +415,6 @@
     return v.toFixed(d);
   }
 
-  // 根据当前选择，控制显示哪些字段
   function refreshVisibleFields() {
     const cType = $("contractType").value;
     const item = $("calcItem").value;
@@ -406,14 +424,12 @@
     allFieldDivs.forEach(div => {
       const id = div.getAttribute("data-field");
       if (needSet.size === 0) {
-        // 未配置时全部隐藏
         div.style.display = "none";
       } else {
         div.style.display = needSet.has(id) ? "flex" : "none";
       }
     });
 
-    // 没有字段的分组隐藏标题
     ["basic","fee","mark","margin","openavg"].forEach(name => {
       const block = $(`block-${name}`);
       const title = $(`block-${name}-title`);
@@ -424,7 +440,6 @@
       if (title) title.style.display = hasVisible ? "block" : "none";
     });
 
-    // 提示文字
     const hint = $("hintText");
     if (!REQUIRED[cType] || !REQUIRED[cType][item]) {
       hint.textContent = "该合约类型下此项目暂未在网页中实现，请先使用 Excel 表。";
@@ -438,36 +453,27 @@
     $("result").textContent = "参数更新后，请点击“计算”。";
   }
 
-  // 检查必填字段
   function checkRequired(contractType, item) {
     const req = (REQUIRED[contractType] && REQUIRED[contractType][item]) || [];
     const missing = [];
     req.forEach(id => {
       const el = $(id);
       if (!el) return;
-      if (el.tagName === "SELECT") {
-        // 选择框一般都有默认值，这里不校验
-        return;
-      }
+      if (el.tagName === "SELECT") return;
       const v = el.value.trim();
       if (!v) missing.push(FIELD_LABELS[id] || id);
     });
     return missing;
   }
 
-  // ========== 各类型计算公式（直接按 Excel 文字公式写） ==========
-
-  // 开仓均价（U / 币本位通用，来自“开仓均价 合约 U+币本”sheet）
   function calcOpenAvg(face, origQty, origPrice, newQty, newPrice) {
     const totalQty = origQty + newQty;
     if (totalQty === 0) return null;
-    // H6: (B6*C6*D6 + B6*E6*F6) / (B6*(C6+E6))，面值可约掉
     return (origQty * origPrice + newQty * newPrice) / totalQty;
   }
 
-  // U 本位合约相关
   function calcU(item) {
-    const side = $("side").value; // long / short
+    const side = $("side").value;
     const face = getNum("faceValue");
     const ctt = Math.abs(getNum("contracts") || 0);
     const open = getNum("openPx");
@@ -496,29 +502,23 @@
 
     let html = "";
 
-    // 公共量
-    const positionValue_open = face && ctt && open ? face * ctt * open : null; // 以开仓价计
-    const positionValue_mark = face && ctt && mark ? face * ctt * mark : null; // 以标记价计
+    const positionValue_open = face && ctt && open ? face * ctt * open : null;
+    const positionValue_mark = face && ctt && mark ? face * ctt * mark : null;
     const mmRate = pct(mmPct || 0);
     const liqRate = pct(liqPct || 0);
 
-    // 合约收益（A3）
     let pnl = null;
     if (face != null && ctt && open != null && close != null) {
-      if (side === "long") {
-        pnl = face * ctt * (close - open);
-      } else {
-        pnl = face * ctt * (open - close);
-      }
+      pnl = side === "long"
+        ? face * ctt * (close - open)
+        : face * ctt * (open - close);
     }
 
-    // 开仓保证金（初始）（A5）
     let initMargin = null;
     if (face != null && ctt && open != null && lev != null && lev !== 0) {
       initMargin = face * ctt * open / lev;
     }
 
-    // 手续费（A2）
     let feeOpen = null, feeClose = null, feeTotal = null;
     if (face != null && ctt && open != null) {
       feeOpen = face * ctt * open * feeOpenRate;
@@ -530,23 +530,20 @@
       feeTotal = (feeOpen || 0) + (feeClose || 0);
     }
 
-    // 维持保证金（A6）
     let maintMargin = null;
     if (positionValue_mark != null && mmPct != null) {
       maintMargin = positionValue_mark * mmRate;
     }
 
-    // 单币种「保证金率」（A7：保证金率 = (保证金余额 + 收益) / (面值*|张数|*标记价格*(维持保证金率+手续费率))）
     let marginRatioSingle = null;
     if (mb != null && pnl != null && positionValue_mark != null && mmPct != null) {
-      const closeFeeRate = feeCloseRate; // 视为“减仓手续费率”
+      const closeFeeRate = feeCloseRate;
       const denom = positionValue_mark * (mmRate + closeFeeRate);
       if (denom !== 0) {
         marginRatioSingle = (mb + pnl) / denom * 100;
       }
     }
 
-    // 跨币种全仓维持保证金率（A8：维持保证金率 = 有效保证金 /（维持保证金 + 减仓手续费)）
     let marginRatioCross = null;
     if (effMargin != null && maintMargin != null) {
       const denom = maintMargin + (reduceFee || 0);
@@ -555,16 +552,13 @@
       }
     }
 
-    // 仓位价值（A9）
     let posValue = positionValue_mark;
 
-    // 资金费用（A10）
     let fundingFee = null;
     if (posValue != null && fundPct != null) {
       fundingFee = posValue * pct(fundPct);
     }
 
-    // 预估强平价（A11）
     let liqLong = null, liqShort = null;
     if (face != null && ctt && open != null && mb != null && mmPct != null && liqPct != null) {
       const pos = face * ctt;
@@ -578,7 +572,6 @@
       }
     }
 
-    // 开仓均价（用开仓均价 sheet 公式）
     let avgOpen = null;
     if (origQty != null && origPrice != null && newQty != null && newPrice != null) {
       avgOpen = calcOpenAvg(face || 1, origQty, origPrice, newQty, newPrice);
@@ -589,50 +582,45 @@
     switch (itemName) {
       case "开仓均价":
         html += `<div class="sub-title">开仓均价</div>`;
-        if (avgOpen == null) {
-          html += `<div class="row-item"><span>提示</span><span>请填写：合约面值、原持仓数量、原持仓均价、新开仓数量、新开仓成交均价。</span></div>`;
-        } else {
-          html += row("加权平均开仓均价", avgOpen, 8);
-        }
+        html += rowBig("加权平均开仓均价", avgOpen, 8);
         break;
 
       case "手续费":
         html += `<div class="sub-title">手续费</div>`;
         html += row("开仓手续费", feeOpen, 8);
         html += row("平仓手续费", feeClose, 8);
-        html += row("手续费合计", feeTotal, 8);
+        html += rowBig("手续费合计", feeTotal, 8);
         break;
 
       case "合约收益":
         html += `<div class="sub-title">合约收益</div>`;
-        html += row("合约收益（未扣手续费）", pnl, 8);
+        html += rowBig("合约收益（未扣手续费）", pnl, 8);
         break;
 
       case "收益率":
         html += `<div class="sub-title">收益与收益率</div>`;
         html += row("合约收益（未扣手续费）", pnl, 8);
         html += row("开仓保证金（初始）", initMargin, 8);
-        const netForRate = pnl; // 按说明：收益 / 开仓固定保证金
+        const netForRate = pnl;
         const rate = initMargin ? netForRate / initMargin * 100 : null;
-        html += row("收益率（收益 ÷ 开仓保证金）", rate, 4, "%");
+        html += rowBig("收益率（收益 ÷ 开仓保证金）", rate, 4, "%");
         break;
 
       case "开仓保证金（初始）":
         html += `<div class="sub-title">开仓保证金（初始）</div>`;
-        html += row("开仓保证金（面值×开仓价×张数÷杠杆）", initMargin, 8);
+        html += rowBig("开仓保证金", initMargin, 8);
         break;
 
       case "维持保证金":
         html += `<div class="sub-title">维持保证金</div>`;
         html += row("仓位价值（标记价格）", posValue, 8);
-        html += row("维持保证金（仓位价值×维持保证金率）", maintMargin, 8);
+        html += rowBig("维持保证金", maintMargin, 8);
         break;
 
       case "维持保证金率":
         html += `<div class="sub-title">单币种全仓保证金率</div>`;
         html += row("合约收益", pnl, 8);
-        html += row("仓位价值（标记价格）", posValue, 8);
-        html += row("保证金率（(保证金余额+收益) ÷ [仓位价值×(维持保证金率+减仓手续费率)])", marginRatioSingle, 4, "%");
+        html += rowBig("保证金率", marginRatioSingle, 4, "%");
         break;
 
       case "跨币种全仓维持保证金率":
@@ -640,24 +628,24 @@
         html += row("维持保证金", maintMargin, 8);
         html += row("减仓手续费", reduceFee, 8);
         html += row("有效保证金", effMargin, 8);
-        html += row("维持保证金率（有效保证金 ÷ [维持保证金+减仓手续费])", marginRatioCross, 4, "%");
+        html += rowBig("维持保证金率", marginRatioCross, 4, "%");
         break;
 
       case "仓位价值":
         html += `<div class="sub-title">仓位价值</div>`;
-        html += row("仓位价值（面值×张数×标记价格）", posValue, 8);
+        html += rowBig("仓位价值（面值×张数×标记价格）", posValue, 8);
         break;
 
       case "资金费用":
         html += `<div class="sub-title">资金费用</div>`;
         html += row("仓位价值（标记价格）", posValue, 8);
-        html += row("资金费用（仓位价值×资金费率）", fundingFee, 8);
+        html += rowBig("资金费用（仓位价值×资金费率）", fundingFee, 8);
         break;
 
       case "预估强平价":
         html += `<div class="sub-title">预估强平价格</div>`;
-        html += row("多仓预估强平价", liqLong, 8);
-        html += row("空仓预估强平价", liqShort, 8);
+        html += rowBig("多仓预估强平价", liqLong, 8);
+        html += rowBig("空仓预估强平价", liqShort, 8);
         break;
 
       default:
@@ -667,7 +655,6 @@
     return html;
   }
 
-  // 币本位合约相关（按《币本位合约》sheet）
   function calcCoin(item) {
     const side = $("side").value;
     const face = getNum("faceValue");
@@ -698,7 +685,6 @@
 
     let html = "";
 
-    // 仓位价值（面值*张数/标记价格）
     let posValue = null;
     if (face != null && ctt && mark != null && mark !== 0) {
       posValue = face * ctt / mark;
@@ -707,7 +693,6 @@
     const mmRate = pct(mmPct || 0);
     const liqRate = pct(liqPct || 0);
 
-    // 合约收益（A3）
     let pnl = null;
     if (face != null && ctt && open != null && close != null && open !== 0 && close !== 0) {
       if (side === "long") {
@@ -717,13 +702,11 @@
       }
     }
 
-    // 开仓保证金（面值/开仓价*张数/杠杆）（A5）
     let initMargin = null;
     if (face != null && ctt && open != null && open !== 0 && lev != null && lev !== 0) {
       initMargin = face / open * ctt / lev;
     }
 
-    // 手续费（A2：面值*张数/价格*手续费率）
     let feeOpen = null, feeClose = null, feeTotal = null;
     if (face != null && ctt && open != null && open !== 0) {
       feeOpen = face * ctt / open * feeOpenRate;
@@ -735,13 +718,11 @@
       feeTotal = (feeOpen || 0) + (feeClose || 0);
     }
 
-    // 维持保证金（A6：面值*|张数|*维持保证金率／标记价格）
     let maintMargin = null;
     if (face != null && ctt && mark != null && mark !== 0 && mmPct != null) {
       maintMargin = face * ctt * mmRate / mark;
     }
 
-    // 单币种保证金率（A7）
     let marginRatioSingle = null;
     if (mb != null && pnl != null && face != null && ctt && mark != null && mark !== 0 && mmPct != null) {
       const closeFeeRate = feeCloseRate;
@@ -751,7 +732,6 @@
       }
     }
 
-    // 跨币种全仓维持保证金率（A8）
     let marginRatioCross = null;
     if (effMargin != null && maintMargin != null) {
       const denom = maintMargin + (reduceFee || 0);
@@ -760,29 +740,24 @@
       }
     }
 
-    // 资金费用（A10）
     let fundingFee = null;
     if (posValue != null && fundPct != null) {
       fundingFee = posValue * pct(fundPct);
     }
 
-    // 预估强平价（A11）
     let liqLong = null, liqShort = null;
     if (posValue != null && open != null && open !== 0 && mb != null && mmPct != null && liqPct != null) {
-      // 多仓预估强平价 = 仓位价值*(维持保证金率+手续费率+1) / (保证金余额 + 仓位价值/开仓均价)
-      const feeRate = liqRate; // 视为减仓手续费率
+      const feeRate = liqRate;
       const denomLong = mb + posValue / open;
       if (denomLong !== 0) {
         liqLong = posValue * (mmRate + feeRate + 1) / denomLong;
       }
-      // 空仓预估强平价 = 仓位价值*(维持保证金率+手续费率-1) / (保证金余额 - 仓位价值/开仓均价)
       const denomShort = mb - posValue / open;
       if (denomShort !== 0) {
         liqShort = posValue * (mmRate + feeRate - 1) / denomShort;
       }
     }
 
-    // 开仓均价（同 U，本质加权平均）
     let avgOpen = null;
     if (origQty != null && origPrice != null && newQty != null && newPrice != null) {
       avgOpen = calcOpenAvg(face || 1, origQty, origPrice, newQty, newPrice);
@@ -793,19 +768,19 @@
     switch (itemName) {
       case "开仓均价":
         html += `<div class="sub-title">开仓均价</div>`;
-        html += row("加权平均开仓均价", avgOpen, 8);
+        html += rowBig("加权平均开仓均价", avgOpen, 8);
         break;
 
       case "手续费":
         html += `<div class="sub-title">手续费</div>`;
         html += row("开仓手续费", feeOpen, 8);
         html += row("平仓手续费", feeClose, 8);
-        html += row("手续费合计", feeTotal, 8);
+        html += rowBig("手续费合计", feeTotal, 8);
         break;
 
       case "合约收益":
         html += `<div class="sub-title">合约收益</div>`;
-        html += row("合约收益（未扣手续费）", pnl, 8);
+        html += rowBig("合约收益（未扣手续费）", pnl, 8);
         break;
 
       case "收益率":
@@ -813,24 +788,24 @@
         html += row("合约收益（未扣手续费）", pnl, 8);
         html += row("开仓保证金（初始）", initMargin, 8);
         const rate = initMargin ? pnl / initMargin * 100 : null;
-        html += row("收益率（收益 ÷ 开仓保证金）", rate, 4, "%");
+        html += rowBig("收益率（收益 ÷ 开仓保证金）", rate, 4, "%");
         break;
 
       case "开仓保证金（初始）":
         html += `<div class="sub-title">开仓保证金（初始）</div>`;
-        html += row("开仓保证金（面值/开仓价×张数÷杠杆）", initMargin, 8);
+        html += rowBig("开仓保证金", initMargin, 8);
         break;
 
       case "维持保证金":
         html += `<div class="sub-title">维持保证金</div>`;
         html += row("仓位价值（面值×张数÷标记价格）", posValue, 8);
-        html += row("维持保证金（仓位价值×维持保证金率）", maintMargin, 8);
+        html += rowBig("维持保证金", maintMargin, 8);
         break;
 
       case "维持保证金率":
         html += `<div class="sub-title">单币种全仓保证金率</div>`;
         html += row("合约收益", pnl, 8);
-        html += row("保证金率", marginRatioSingle, 4, "%");
+        html += rowBig("保证金率", marginRatioSingle, 4, "%");
         break;
 
       case "跨币种全仓维持保证金率":
@@ -838,24 +813,24 @@
         html += row("维持保证金", maintMargin, 8);
         html += row("减仓手续费", reduceFee, 8);
         html += row("有效保证金", effMargin, 8);
-        html += row("维持保证金率（有效保证金 ÷ [维持保证金+减仓手续费])", marginRatioCross, 4, "%");
+        html += rowBig("维持保证金率", marginRatioCross, 4, "%");
         break;
 
       case "仓位价值":
         html += `<div class="sub-title">仓位价值</div>`;
-        html += row("仓位价值（面值×张数÷标记价格）", posValue, 8);
+        html += rowBig("仓位价值", posValue, 8);
         break;
 
       case "资金费用":
         html += `<div class="sub-title">资金费用</div>`;
         html += row("仓位价值", posValue, 8);
-        html += row("资金费用（仓位价值×资金费率）", fundingFee, 8);
+        html += rowBig("资金费用", fundingFee, 8);
         break;
 
       case "预估强平价":
         html += `<div class="sub-title">预估强平价格</div>`;
-        html += row("多仓预估强平价", liqLong, 8);
-        html += row("空仓预估强平价", liqShort, 8);
+        html += rowBig("多仓预估强平价", liqLong, 8);
+        html += rowBig("空仓预估强平价", liqShort, 8);
         break;
 
       default:
@@ -865,7 +840,6 @@
     return html;
   }
 
-  // 开仓均价 sheet 单独模式
   function calcOpenAvgOnly() {
     const face = getNum("faceValue");
     const origQty = getNum("origQty");
@@ -875,20 +849,19 @@
     const avg = calcOpenAvg(face || 1, origQty, origPrice, newQty, newPrice);
 
     let html = `<div class="sub-title">开仓均价</div>`;
-    html += row("加权平均开仓均价", avg, 8);
+    html += rowBig("加权平均开仓均价", avg, 8);
     return html;
   }
 
-  function row(k,v,d,suf){
+  function row(k,v,d,suffix){
     const t = formatVal(v,d);
-    return `<div class="row-item"><span>${k}</span><span>${t}${suf?" "+suf:""}</span></div>`;
+    return `<div class="row-item"><span>${k}</span><span>${t}${suffix?" "+suffix:""}</span></div>`;
   }
   function rowBig(k,v,d){
     const t = formatVal(v,d);
     return `<div class="row-item big"><span>${k}</span><span>${t}</span></div>`;
   }
 
-  // ========== 主流程 ==========
   function doCalc() {
     const cType = $("contractType").value;
     const item = $("calcItem").value;
@@ -923,11 +896,9 @@
     resEl.innerHTML = html;
   }
 
-  // 事件
   $("contractType").addEventListener("change", refreshVisibleFields);
   $("calcItem").addEventListener("change", refreshVisibleFields);
   $("btnCalc").addEventListener("click", doCalc);
 
-  // 初始刷新一次
   refreshVisibleFields();
 })();
