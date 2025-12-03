@@ -2,343 +2,307 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8" />
-<title>合约公式计算器 · Excel版可视化</title>
+<title>U本位合约计算器（Excel 完整版）</title>
+
 <style>
   *{box-sizing:border-box;}
   body{
-    margin:0;
-    padding:24px;
+    margin:0; padding:28px;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-    background:#f5f7fb;
-    color:#111827;
+    background:linear-gradient(135deg,#f4f6ff,#eef1f7);
+    color:#111;
   }
-  .wrap{max-width:1180px;margin:0 auto;}
-  h1{margin:0 0 14px;font-size:22px;}
-  .top-row{
-    display:flex;
-    gap:12px;
-    margin-bottom:16px;
-    flex-wrap:wrap;
-  }
-  .top-row select{
-    padding:8px 10px;
-    border-radius:8px;
-    border:1px solid #d0d4e0;
-    font-size:14px;
-    min-width:220px;
-  }
-  .grid{
-    display:grid;
-    grid-template-columns: minmax(0,2.3fr) minmax(0,2.1fr) minmax(0,2.1fr);
-    gap:16px;
-  }
+  .wrap{max-width:1200px;margin:0 auto;}
+  h1{margin:0 0 18px;font-size:23px;font-weight:700;}
   .card{
-    background:#fff;
+    background:white;
+    padding:20px 22px;
     border-radius:14px;
-    padding:16px 16px 18px;
-    border:1px solid #e1e4f0;
+    box-shadow:0 4px 14px rgba(0,0,0,.06);
+    border:1px solid #e4e6f2;
+    margin-bottom:22px;
   }
-  .card h2{
-    font-size:15px;
-    margin:0 0 10px;
-  }
-  label{
-    font-size:13px;
-    font-weight:600;
-    display:block;
-    margin-bottom:4px;
-  }
+  h2{margin:0 0 12px;font-size:17px;font-weight:700;}
+  label{font-size:13px;font-weight:600;display:block;margin-bottom:4px;}
   input,select{
-    width:100%;
-    padding:8px 9px;
-    border-radius:7px;
-    border:1px solid #d0d4e0;
-    font-size:14px;
+    width:100%; padding:9px 10px;
+    border-radius:8px; border:1px solid #ccd0da;
+    font-size:14px; background:#fafbff;
   }
-  .row2{
-    display:grid;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:10px;
+  .grid2{
+    display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:14px;
   }
-  .field{margin-bottom:9px;}
   button{
-    width:100%;
-    margin-top:10px;
-    padding:11px;
-    border-radius:8px;
-    border:none;
-    background:#005cff;
-    color:#fff;
-    font-size:15px;
-    font-weight:600;
+    width:100%; margin-top:14px; padding:12px;
+    border:none; border-radius:8px;
+    background:#0061ff; color:white;
+    font-size:15px; font-weight:600;
     cursor:pointer;
   }
-  button:hover{opacity:.92;}
   .result-block{
-    margin-top:4px;
-    padding:10px 11px;
-    border-radius:10px;
-    background:#f3f4ff;
-    font-size:13px;
-    line-height:1.6;
+    margin-top:10px; padding:14px;
+    background:#f5f6ff; border-radius:10px;
+    border:1px solid #dfe3ff;
+    font-size:14px;
   }
-  .res-row{
-    display:flex;
-    justify-content:space-between;
-    margin-bottom:3px;
+  .row{
+    display:flex; justify-content:space-between;
+    margin-bottom:6px; font-size:14px;
   }
-  .res-row span:first-child{color:#4b5563;}
-  .res-row span:last-child{font-weight:600;}
-  .res-row.big span:last-child{font-size:15px;}
-  .hint{font-size:11px;color:#9ca3af;margin-top:1px;}
+  .row span:first-child{color:#4c5161;}
+  .row.big span:last-child{font-size:16px;}
 </style>
 </head>
+
 <body>
 <div class="wrap">
 
-  <h1>合约公式计算器 · 来自 Excel 公式整理</h1>
+<h1>U本位合约 · Excel 公式完整版</h1>
 
-  <div class="top-row">
-    <select id="sheetType">
-      <option value="u_perp">U本位合约（当前）</option>
-      <option value="coin_perp" disabled>币本位合约（预留，对应 Excel「币本位合约」页）</option>
-      <option value="avg_open" disabled>开仓均价 · 合约 U+币本（预留）</option>
-      <option value="margin_spot" disabled>现货杠杆（预留）</option>
-      <option value="spot_avg" disabled>现货开仓均价（预留）</option>
-      <option value="option" disabled>期权（预留）</option>
-    </select>
+<!-- 参数输入卡片 -->
+<div class="card">
+  <h2>基础参数</h2>
+
+  <div class="grid2">
+    <div>
+      <label>方向</label>
+      <select id="side">
+        <option value="long">做多</option>
+        <option value="short">做空</option>
+      </select>
+    </div>
+
+    <div>
+      <label>面值</label>
+      <input id="faceValue" type="text" inputmode="decimal" />
+    </div>
+
+    <div>
+      <label>开仓均价</label>
+      <input id="openPx" type="text" inputmode="decimal" />
+    </div>
+
+    <div>
+      <label>平仓均价</label>
+      <input id="closePx" type="text" inputmode="decimal" />
+    </div>
+
+    <div>
+      <label>张数</label>
+      <input id="contracts" type="text" inputmode="decimal" />
+    </div>
+
+    <div>
+      <label>杠杆倍数</label>
+      <input id="leverage" type="text" inputmode="decimal" />
+    </div>
   </div>
 
-  <div class="grid">
+  <h2 style="margin-top:18px;">手续费（允许负数）</h2>
 
-    <!-- 左：U本位参数 + 手续费（全部手动输入） -->
-    <div class="card">
-      <h2>U本位合约 · 基础参数</h2>
-
-      <div class="row2">
-        <div class="field">
-          <label>方向</label>
-          <select id="side">
-            <option value="long">做多</option>
-            <option value="short">做空</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>合约面值</label>
-          <input id="faceValue" type="text" inputmode="decimal" placeholder="例如 0.01 / 1" />
-          <div class="hint">Excel：面值</div>
-        </div>
-      </div>
-
-      <div class="row2">
-        <div class="field">
-          <label>开仓均价</label>
-          <input id="openPx" type="text" inputmode="decimal" placeholder="支持小数" />
-        </div>
-        <div class="field">
-          <label>平仓均价</label>
-          <input id="closePx" type="text" inputmode="decimal" placeholder="支持小数" />
-        </div>
-      </div>
-
-      <div class="row2">
-        <div class="field">
-          <label>张数</label>
-          <input id="contracts" type="text" inputmode="decimal" placeholder="正数，对应 Excel「张数」" />
-        </div>
-        <div class="field">
-          <label>杠杆倍数</label>
-          <input id="leverage" type="text" inputmode="decimal" value="10" />
-          <div class="hint">Excel：杠杆</div>
-        </div>
-      </div>
-
-      <div class="row2">
-        <div class="field">
-          <label>开仓手续费率</label>
-          <input id="feeOpen" type="text" inputmode="decimal" placeholder="手动输入，例如 0.0005" />
-          <div class="hint">Excel：手续费率</div>
-        </div>
-        <div class="field">
-          <label>平仓手续费率</label>
-          <input id="feeClose" type="text" inputmode="decimal" placeholder="手动输入，例如 0.0005" />
-        </div>
-      </div>
-
-      <h2 style="margin-top:14px;">风险相关参数</h2>
-
-      <div class="row2">
-        <div class="field">
-          <label>标记价格</label>
-          <input id="markPx" type="text" inputmode="decimal" placeholder="Excel：标记价格" />
-        </div>
-        <div class="field">
-          <label>资金费率</label>
-          <input id="fundingRate" type="text" inputmode="decimal" placeholder="例如 0.0005" />
-          <div class="hint">Excel：资金费率</div>
-        </div>
-      </div>
-
-      <div class="row2">
-        <div class="field">
-          <label>仓位维持保证金率</label>
-          <input id="mmRate" type="text" inputmode="decimal" placeholder="例如 0.005" />
-          <div class="hint">Excel：仓位维持保证金率</div>
-        </div>
-        <div class="field">
-          <label>强平计算手续费率</label>
-          <input id="liqFeeRate" type="text" inputmode="decimal" placeholder="例如 0.0005" />
-          <div class="hint">用于强平价公式中的手续费率</div>
-        </div>
-      </div>
-
-      <div class="field">
-        <label>保证金余额</label>
-        <input id="marginBalance" type="text" inputmode="decimal" placeholder="Excel：保证金余额" />
-      </div>
+  <div class="grid2">
+    <div>
+      <label>Maker（%）</label>
+      <input id="makerFee" type="text" inputmode="decimal" placeholder="输入百分比，如 0.05" />
+    </div>
+    <div>
+      <label>Taker（%）</label>
+      <input id="takerFee" type="text" inputmode="decimal" placeholder="输入百分比，如 0.05" />
     </div>
 
-    <!-- 中：保证金 / 收益 / 资金费用 -->
-    <div class="card">
-      <h2>保证金 / 收益 / 资金费用</h2>
-
-      <button onclick="calcAll()">按 Excel 公式计算</button>
-
-      <div id="blockMain" class="result-block">
-        填写参数后点击上方按钮。
-      </div>
+    <div>
+      <label>开仓使用</label>
+      <select id="openRole">
+        <option value="maker">Maker</option>
+        <option value="taker">Taker</option>
+      </select>
     </div>
 
-    <!-- 右：维持保证金 / 仓位价值 / 预估强平价 -->
-    <div class="card">
-      <h2>维持保证金 / 强平相关</h2>
-
-      <div id="blockRisk" class="result-block">
-        将维持保证金率、保证金余额等填好后一起计算。
-      </div>
+    <div>
+      <label>平仓使用</label>
+      <select id="closeRole">
+        <option value="maker">Maker</option>
+        <option value="taker">Taker</option>
+      </select>
     </div>
-
   </div>
+
+  <h2 style="margin-top:18px;">风险参数</h2>
+
+  <div class="grid2">
+    <div>
+      <label>标记价格</label>
+      <input id="markPx" type="text" inputmode="decimal" />
+    </div>
+
+    <div>
+      <label>资金费率（%）</label>
+      <input id="fundingRate" type="text" inputmode="decimal" />
+    </div>
+
+    <div>
+      <label>维持保证金率（%）</label>
+      <input id="mmRate" type="text" inputmode="decimal" />
+    </div>
+
+    <div>
+      <label>强平手续费率（%）</label>
+      <input id="liqFeeRate" type="text" inputmode="decimal" />
+    </div>
+
+    <div>
+      <label>保证金余额</label>
+      <input id="marginBalance" type="text" inputmode="decimal" />
+    </div>
+  </div>
+
+  <button onclick="calcU()">计算（Excel 全公式）</button>
+</div>
+
+<!-- 结果 -->
+<div class="card">
+  <h2>计算结果</h2>
+  <div id="result" class="result-block">
+    输入数据后点击“计算”。
+  </div>
+</div>
 
 </div>
 
 <script>
-function toNum(id){
-  const raw = document.getElementById(id).value.trim().replace(/,/g,'').replace(/，/g,'').replace(/\s+/g,'');
-  if(!raw) return null;
-  const v = parseFloat(raw);
-  return Number.isFinite(v) ? v : null;
+function num(id){
+  let v = document.getElementById(id).value.trim();
+  if(!v) return null;
+  v = v.replace(/,/g,'').replace(/，/g,'');
+  return parseFloat(v);
 }
 
-function calcAll(){
-  const type = document.getElementById("sheetType").value;
-  const mainBox = document.getElementById("blockMain");
-  const riskBox = document.getElementById("blockRisk");
+function pctToDecimal(v){
+  // 输入 0.05 → 0.05% → 0.0005
+  return v / 100;
+}
 
-  if(type !== "u_perp"){
-    mainBox.innerHTML = "当前仅启用：Excel《U本位合约》页相关公式。其它类型已预留。";
-    riskBox.innerHTML = "请选择 U本位合约进行计算。";
+function calcU(){
+  const side = document.getElementById("side").value;
+  const face = num("faceValue");
+  const open = num("openPx");
+  const close = num("closePx");
+  const ctt = num("contracts");
+  const lev = num("leverage");
+
+  const makerPct = num("makerFee");
+  const takerPct = num("takerFee");
+
+  const openRole = document.getElementById("openRole").value;
+  const closeRole = document.getElementById("closeRole").value;
+
+  const mark = num("markPx");
+  const fundPct = num("fundingRate");
+  const mmPct = num("mmRate");
+  const liqPct = num("liqFeeRate");
+  const mb = num("marginBalance");
+
+  if([face,open,close,ctt,lev].some(v => v === null)){
+    result.innerHTML = "请先把所有主要参数输入完整。";
     return;
   }
 
-  const side      = document.getElementById("side").value;
-  const faceValue = toNum("faceValue");
-  const openPx    = toNum("openPx");
-  const closePx   = toNum("closePx");
-  const contracts = toNum("contracts");
-  const lev       = toNum("leverage");
-  const feeOpen   = toNum("feeOpen");
-  const feeClose  = toNum("feeClose");
-  const markPx    = toNum("markPx");
-  const funding   = toNum("fundingRate");
-  const mmRate    = toNum("mmRate");
-  const liqFee    = toNum("liqFeeRate");
-  const mb        = toNum("marginBalance");
+  const absC = Math.abs(ctt);
 
-  if([faceValue,openPx,closePx,contracts,lev,feeOpen,feeClose].some(v => v===null)){
-    mainBox.innerHTML = "请至少把：合约面值 / 开平仓价 / 张数 / 杠杆 / 两个手续费率 填完整。";
-    return;
-  }
+  // 手续费转换
+  const maker = pctToDecimal(makerPct || 0);
+  const taker = pctToDecimal(takerPct || 0);
 
-  const absContracts = Math.abs(contracts);
+  const feeOpenRate = openRole === "maker" ? maker : taker;
+  const feeCloseRate = closeRole === "maker" ? maker : taker;
 
-  // 开仓保证金（初始） = 面值 * 开仓价格 * 张数 / 杠杆
-  const openMargin = faceValue * openPx * absContracts / lev;
+  // Excel：开仓保证金
+  const margin = face * absC * open / lev;
 
-  // 合约收益（未扣手续费）
-  let grossPnl = 0;
+  // Excel：未扣手续费的收益
+  let pnl = 0;
   if(side === "long"){
-    grossPnl = faceValue * absContracts * (closePx - openPx);
+    pnl = face * absC * (close - open);
   }else{
-    grossPnl = faceValue * absContracts * (openPx - closePx);
+    pnl = face * absC * (open - close);
   }
 
-  // 手续费 = 面值 * 张数 * 开或平仓均价 * 手续费率
-  const feeOpenAmt  = faceValue * absContracts * openPx  * feeOpen;
-  const feeCloseAmt = faceValue * absContracts * closePx * feeClose;
-  const totalFee    = feeOpenAmt + feeCloseAmt;
+  // 手续费
+  const feeOpen = face * absC * open * feeOpenRate;
+  const feeClose = face * absC * close * feeCloseRate;
+  const totalFee = feeOpen + feeClose;
 
-  const netPnl      = grossPnl - totalFee;
-  const roe         = openMargin !== 0 ? netPnl / openMargin * 100 : 0;
+  // 扣手续费后的收益
+  const net = pnl - totalFee;
 
-  let posValue = null;
-  let fundingFee = null;
-  if(markPx !== null){
-    // 仓位价值 = 面值 * 张数 * 标记价格
-    posValue = faceValue * absContracts * markPx;
-    if(funding !== null){
-      // 资金费用 = 仓位价值 × 资金费率
-      fundingFee = posValue * funding;
+  // ROE
+  const roe = margin !== 0 ? (net / margin * 100) : 0;
+
+  // 仓位价值
+  let posValue = null, fundingFee = null;
+  if(mark !== null){
+    posValue = face * absC * mark;
+
+    if(fundPct !== null){
+      const fund = pctToDecimal(fundPct);
+      fundingFee = posValue * fund;
     }
   }
 
-  mainBox.innerHTML =
-    row("开仓保证金（初始保证金）", fmt(openMargin,8)) +
-    row("开仓手续费", fmt(feeOpenAmt,8)) +
-    row("平仓手续费", fmt(feeCloseAmt,8)) +
-    row("总手续费", fmt(totalFee,8)) +
-    row("合约收益（未扣手续费）", fmt(grossPnl,8)) +
-    rowBig("最终盈亏（含手续费）", fmt(netPnl,8)) +
-    row("收益率（收益 / 开仓保证金）", fmt(roe,4) + " %") +
-    (posValue!==null ? row("仓位价值", fmt(posValue,8)) : "") +
-    (fundingFee!==null ? row("资金费用", fmt(fundingFee,8)) : "");
-
-  // 维持保证金 / 强平
-  if(markPx===null || mmRate===null){
-    riskBox.innerHTML = "若要计算维持保证金 / 强平价，请补充：标记价格、仓位维持保证金率、保证金余额等。";
-    return;
+  // 维持保证金
+  let maint = null;
+  if(mark !== null && mmPct !== null){
+    const mm = pctToDecimal(mmPct);
+    maint = face * absC * mark * mm;
   }
 
-  const maintMargin = faceValue * absContracts * mmRate * markPx;
-
+  // 强平价
   let liqLong = null, liqShort = null;
-  if(mb!==null && liqFee!==null){
-    const pos = faceValue * absContracts;
-    const denomLong  = pos * (mmRate + liqFee - 1);
-    const denomShort = pos * (mmRate + liqFee + 1);
-    if(denomLong!==0){
-      liqLong = (mb - pos * openPx) / denomLong;
+  if(mb !== null && liqPct !== null && mark !== null){
+    const mm = pctToDecimal(mmPct || 0);
+    const liqF = pctToDecimal(liqPct);
+
+    const pos = face * absC;
+
+    // 多仓强平价（Excel 结构）
+    const denomLong = pos * (mm + liqF - 1);
+    if(denomLong !== 0){
+      liqLong = (mb - pos * open) / denomLong;
     }
-    if(denomShort!==0){
-      liqShort = (mb + pos * openPx) / denomShort;
+
+    // 空仓强平价（Excel 结构）
+    const denomShort = pos * (mm + liqF + 1);
+    if(denomShort !== 0){
+      liqShort = (mb + pos * open) / denomShort;
     }
   }
 
-  riskBox.innerHTML =
-    row("维持保证金", fmt(maintMargin,8)) +
-    (liqLong!==null  ? row("多仓预估强平价", fmt(liqLong,8))   : "") +
-    (liqShort!==null ? row("空仓预估强平价", fmt(liqShort,8)) : "");
+  // 输出
+  let html = "";
+  html += row("开仓保证金", margin.toFixed(8));
+  html += row("开仓手续费", feeOpen.toFixed(8));
+  html += row("平仓手续费", feeClose.toFixed(8));
+  html += row("总手续费", totalFee.toFixed(8));
+  html += row("收益（未扣手续费）", pnl.toFixed(8));
+  html += rowBig("最终收益（含手续费）", net.toFixed(8));
+  html += row("收益率 ROE", roe.toFixed(4) + " %");
+
+  if(posValue !== null) html += row("仓位价值", posValue.toFixed(8));
+  if(fundingFee !== null) html += row("资金费用", fundingFee.toFixed(8));
+
+  if(maint !== null) html += row("维持保证金", maint.toFixed(8));
+  if(liqLong !== null) html += row("多仓强平价", liqLong.toFixed(8));
+  if(liqShort !== null) html += row("空仓强平价", liqShort.toFixed(8));
+
+  document.getElementById("result").innerHTML = html;
 }
 
-function row(label, val){
-  return '<div class="res-row"><span>'+label+'</span><span>'+val+'</span></div>';
+function row(a,b){
+  return `<div class="row"><span>${a}</span><span>${b}</span></div>`;
 }
-function rowBig(label,val){
-  return '<div class="res-row big"><span>'+label+'</span><span>'+val+'</span></div>';
-}
-function fmt(v,dec){
-  if(v===null || !Number.isFinite(v)) return "-";
-  return v.toFixed(dec);
+function rowBig(a,b){
+  return `<div class="row big"><span>${a}</span><span>${b}</span></div>`;
 }
 </script>
 
