@@ -40,7 +40,7 @@
   .card-title{
     font-size:15px;
     font-weight:650;
-    margin-bottom:12px;
+    margin-bottom:8px;
     display:flex;
     align-items:center;
     gap:6px;
@@ -52,6 +52,12 @@
     height:16px;
     border-radius:999px;
     background:linear-gradient(180deg,#fbbf24,#f97316);
+  }
+  .block-title{
+    font-size:13px;
+    font-weight:600;
+    margin:12px 0 6px;
+    color:#e5e7eb;
   }
   label{
     font-size:12px;
@@ -127,6 +133,14 @@
     font-size:15px;
     color:#fef3c7;
   }
+  .sub-title{
+    margin:10px 0 4px;
+    font-size:13px;
+    font-weight:600;
+    color:#e5e7eb;
+    border-left:3px solid #f97316;
+    padding-left:6px;
+  }
   @media(max-width:640px){
     .wrap{margin-top:20px;}
     h1{font-size:20px;}
@@ -138,10 +152,12 @@
   document.body.innerHTML = `
     <div class="wrap">
       <h1>U本位合约盈亏 & 保证金计算器</h1>
-      <div class="subtitle">适用于：手动输入手续费率（支持负数）、计算盈亏、保证金、资金费用与强平价。</div>
+      <div class="subtitle">手动输入挂单 / 吃单手续费（支持负数），计算盈亏、保证金、资金费用与预估强平价。</div>
 
       <div class="card" id="card-input">
-        <div class="card-title">交易与风险参数</div>
+        <div class="card-title">U本位参数设置</div>
+
+        <div class="block-title">基础参数</div>
         <div class="grid">
           <div class="field">
             <label>方向</label>
@@ -170,30 +186,36 @@
             <label>杠杆倍数</label>
             <input id="leverage" type="text" inputmode="decimal" />
           </div>
+        </div>
 
+        <div class="block-title">手续费（单位：%，可为负）</div>
+        <div class="grid">
           <div class="field">
-            <label>Maker 手续费（%）</label>
+            <label>挂单手续费（%）</label>
             <input id="makerFee" type="text" inputmode="decimal" placeholder="例如 -0.02" />
           </div>
           <div class="field">
-            <label>Taker 手续费（%）</label>
+            <label>吃单手续费（%）</label>
             <input id="takerFee" type="text" inputmode="decimal" placeholder="例如 0.05" />
           </div>
           <div class="field">
             <label>开仓使用</label>
             <select id="openRole">
-              <option value="maker">Maker</option>
-              <option value="taker">Taker</option>
+              <option value="maker">挂单</option>
+              <option value="taker">吃单</option>
             </select>
           </div>
           <div class="field">
             <label>平仓使用</label>
             <select id="closeRole">
-              <option value="maker">Maker</option>
-              <option value="taker">Taker</option>
+              <option value="maker">挂单</option>
+              <option value="taker">吃单</option>
             </select>
           </div>
+        </div>
 
+        <div class="block-title">风险参数</div>
+        <div class="grid">
           <div class="field">
             <label>标记价格</label>
             <input id="markPx" type="text" inputmode="decimal" />
@@ -215,6 +237,7 @@
             <input id="marginBalance" type="text" inputmode="decimal" />
           </div>
         </div>
+
         <div class="btn-row">
           <button class="calc-btn" id="btnCalc">计算</button>
         </div>
@@ -247,23 +270,23 @@
     const open = getNum("openPx");
     const close = getNum("closePx");
     const ctt = getNum("contracts");
-    const lev = getNum("leverage");
+    const lev  = getNum("leverage");
 
     const makerPct = getNum("makerFee");
     const takerPct = getNum("takerFee");
-    const openRole = document.getElementById("openRole").value;
+    const openRole  = document.getElementById("openRole").value;
     const closeRole = document.getElementById("closeRole").value;
 
-    const mark = getNum("markPx");
-    const fundPct = getNum("fundingRate");
-    const mmPct = getNum("mmRate");
+    const mark   = getNum("markPx");
+    const fundPct= getNum("fundingRate");
+    const mmPct  = getNum("mmRate");
     const liqPct = getNum("liqFeeRate");
-    const mb = getNum("marginBalance");
+    const mb     = getNum("marginBalance");
 
     const resultEl = document.getElementById("result");
 
-    if ([face, open, close, ctt, lev].some((v) => v === null)) {
-      resultEl.innerHTML = "请至少填完：面值 / 开平价格 / 张数 / 杠杆，再点击计算。";
+    if ([face, open, close, ctt, lev].some(v => v === null)) {
+      resultEl.innerHTML = "请至少填完：面值 / 开仓价 / 平仓价 / 张数 / 杠杆，然后再计算。";
       return;
     }
 
@@ -272,7 +295,7 @@
     const maker = pct(makerPct || 0);
     const taker = pct(takerPct || 0);
 
-    const feeOpenRate = openRole === "maker" ? maker : taker;
+    const feeOpenRate  = openRole === "maker" ? maker : taker;
     const feeCloseRate = closeRole === "maker" ? maker : taker;
 
     // 开仓保证金
@@ -287,7 +310,7 @@
     }
 
     // 手续费
-    const feeOpen = face * absC * open * feeOpenRate;
+    const feeOpen  = face * absC * open  * feeOpenRate;
     const feeClose = face * absC * close * feeCloseRate;
     const feeTotal = feeOpen + feeClose;
 
@@ -295,6 +318,9 @@
     const roe = margin !== 0 ? (net / margin) * 100 : 0;
 
     let html = "";
+
+    // 收益与手续费
+    html += `<div class="sub-title">收益与手续费</div>`;
     html += row("开仓保证金", margin, 8);
     html += row("开仓手续费", feeOpen, 8);
     html += row("平仓手续费", feeClose, 8);
@@ -303,23 +329,29 @@
     html += rowBig("最终盈亏（含手续费）", net, 8);
     html += row("收益率 ROE", roe, 4, "%");
 
-    // 仓位价值 + 资金费用
-    if (mark !== null) {
-      const posValue = face * absC * mark;
-      html += row("仓位价值", posValue, 8);
-      if (fundPct !== null) {
-        const fundingFee = posValue * pct(fundPct);
-        html += row("资金费用", fundingFee, 8);
+    // 资金与仓位
+    if (mark !== null || fundPct !== null) {
+      html += `<div class="sub-title">资金费 & 仓位</div>`;
+      if (mark !== null) {
+        const posValue = face * absC * mark;
+        html += row("仓位价值", posValue, 8);
+        if (fundPct !== null) {
+          const fundingFee = posValue * pct(fundPct);
+          html += row("资金费用", fundingFee, 8);
+        }
       }
     }
 
-    // 维持保证金
+    // 保证金与强平
+    if ((mark !== null && mmPct !== null) || (mb !== null && liqPct !== null)) {
+      html += `<div class="sub-title">维持保证金 & 预估强平价</div>`;
+    }
+
     if (mark !== null && mmPct !== null) {
       const maint = face * absC * mark * pct(mmPct);
       html += row("维持保证金", maint, 8);
     }
 
-    // 强平价
     if (mb !== null && liqPct !== null) {
       const mm = pct(mmPct || 0);
       const lf = pct(liqPct || 0);
