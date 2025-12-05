@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>交易计算公式全能工具箱 V5.0</title>
+    <title>交易计算公式全能工具箱 V6.0</title>
     
     <script type="text/javascript" id="MathJax-script" async
         src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
@@ -24,12 +24,11 @@
         .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px 20px; }
         .checkbox-group label { font-weight: normal; color: #333; cursor: pointer; display: flex; align-items: center; }
 
-        /* 3. 输入区 (三级) */
-        #inputArea { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 10px; }
+        /* 3. 输入区 (三级) - 核心改动区域 */
+        #inputArea { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 10px; transition: height 0.3s ease; }
         .input-group { display: flex; flex-direction: column; }
         .input-group label { font-weight: 600; margin-bottom: 6px; color: #495057; font-size: 0.95em; }
-        input[type="number"], select { padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 15px; width: 100%; box-sizing: border-box; transition: border-color 0.3s; }
-        input[type="number"]:focus, select:focus { border-color: #007bff; box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); outline: none; }
+        input[type="number"], select { padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 15px; width: 100%; box-sizing: border-box; }
 
         /* 按钮 */
         button { background-color: #28a745; color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 18px; font-weight: 700; width: 100%; margin-top: 25px; transition: background-color 0.3s; }
@@ -44,21 +43,24 @@
         
         .hidden { display: none !important; }
         .note { color: #888; margin-top: 3px; font-size: 0.8em; }
+        
+        /* 版本信息 */
+        .version-info { text-align: right; margin-top: 15px; font-style: italic; color: #6c757d; font-size: 0.9em; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>💡 交易计算公式全能工具箱 V5.0</h1>
+    <h1>💡 交易计算公式全能工具箱</h1>
     
     <div class="selection-panel">
-        <label for="mode">⚡️ 选择交易区 (一级)</label>
+        <label for="mode">⚡️ 选择交易区</label>
         <select id="mode" onchange="toggleInputs()">
-            <option value="usdt_m" selected>1. U 本位合约 (USDT-M)</option>
-            <option value="coin_m">2. 币本位合约 (Coin-M)</option>
-            <option value="avg_price">3. 开仓均价计算</option>
-            <option value="spot_leverage">4. 现货杠杆/借贷</option>
-            <option value="option">5. 期权交易 (Options)</option>
+            <option value="usdt_m" selected>U 本位合约 (USDT-M)</option>
+            <option value="coin_m">币本位合约 (Coin-M)</option>
+            <option value="avg_price">开仓均价计算</option>
+            <option value="spot_leverage">现货杠杆/借贷</option>
+            <option value="option">期权交易 (Options)</option>
         </select>
     </div>
     
@@ -81,19 +83,20 @@
     </div>
 
     <div class="formula-section">
-        <h3 style="color: #007bff;">当前模式的关键公式 ($LaTeX$)</h3>
+        <h3 style="color: #007bff;">当前模式的关键计算逻辑</h3>
         <div id="formulaDisplay">
             </div>
-        <p style="margin-top: 15px; font-style: italic; color: #6c757d;">版本 V5.0.0 - 极简智能布局</p>
+    </div>
+
+    <div class="version-info">
+        版本 V6.0.0 - 极简中文版
     </div>
 </div>
 
 <script>
-    // --- 细项配置表 (CALC_ITEMS_CONFIG) 和 核心公式 (保持 V4.0 不变) ---
-
+    // --- 细项配置表 (CALC_ITEMS_CONFIG) ---
     const CALC_ITEMS_CONFIG = {
         'usdt_m': {
-            title: 'U本位合约计算',
             items: {
                 'avg': '开仓均价',
                 'pnl': '合约收益/收益率',
@@ -106,7 +109,6 @@
             defaultChecked: ['avg', 'pnl', 'liq']
         },
         'coin_m': {
-            title: '币本位合约计算',
             items: {
                 'avg': '开仓均价',
                 'pnl': '合约收益/收益率',
@@ -118,7 +120,6 @@
             defaultChecked: ['avg', 'pnl', 'liq']
         },
         'avg_price': {
-            title: '开仓均价计算',
             items: {
                 'usdt_avg': 'U本位开仓均价',
                 'coin_avg': '币本位开仓均价'
@@ -126,7 +127,6 @@
             defaultChecked: ['usdt_avg', 'coin_avg']
         },
         'spot_leverage': {
-            title: '现货杠杆计算',
             items: {
                 'liquidation_price': '预估爆仓价',
                 'interest_cost': '利息费用',
@@ -135,7 +135,6 @@
             defaultChecked: ['liquidation_price']
         },
         'option': {
-            title: '期权计算', // 期权强制全选，但为了结构统一保留
             items: {
                 'premium_fee': '总期权费',
                 'bep': '盈亏平衡点',
@@ -146,62 +145,60 @@
     };
 
     // --- 输入字段配置表 (INPUT_FIELDS_CONFIG) ---
-    // 新增 requiredModes: 只有当这些模式之一选中时才显示该字段。
+    // requiredBy: 字段必须在模式中的任一细项被选中时才会显示 (模式_细项)
     const INPUT_FIELDS_CONFIG = {
-        // 全局模式/方向
-        'direction': { label: '仓位方向', type: 'select', options: [{value:'long', label:'做多 (Long)'}, {value:'short', label:'做空 (Short)'}], requiredModes: ['usdt_m', 'coin_m', 'option', 'spot_leverage'] },
-        'marginMode': { label: '保证金模式', type: 'select', options: [{value:'cross', label:'全仓 (Cross)'}, {value:'isolated', label:'逐仓 (Isolated)'}], requiredModes: ['usdt_m', 'coin_m'] },
+        // 全局模式/方向 (只在合约/杠杆需要时显示)
+        'direction': { label: '仓位方向', type: 'select', options: [{value:'long', label:'做多'}, {value:'short', label:'做空'}], requiredBy: ['usdt_m_pnl', 'usdt_m_liq', 'coin_m_pnl', 'coin_m_liq', 'spot_leverage_liquidation_price', 'option_premium_fee', 'option_bep'] },
+        'marginMode': { label: '保证金模式', type: 'select', options: [{value:'cross', label:'全仓'}, {value:'isolated', label:'逐仓'}], requiredBy: ['usdt_m_liq', 'coin_m_liq'] },
         
         // 合约/期权通用
-        'contractFaceValue': { label: '合约面值 (M)', default: '10', note: '币本位: 10/100, U本位: 1/0.001', requiredModes: ['usdt_m', 'coin_m', 'option'] },
-        'entryPrice': { label: '当前开仓均价 (P_entry)', default: '30000', requiredModes: ['usdt_m', 'coin_m', 'option', 'spot_leverage'] },
-        'positionSize': { label: '当前总持仓张数 (S)', default: '100', requiredModes: ['usdt_m', 'coin_m', 'option'] },
-        'leverage': { label: '杠杆倍数 (L)', default: '20', requiredModes: ['usdt_m', 'coin_m', 'spot_leverage'] },
-        'markPrice': { label: '标记价格 (P_mark)', default: '30500', requiredModes: ['usdt_m', 'coin_m', 'option'] },
+        'contractFaceValue': { label: '合约面值', default: '10', note: '币本位: 10/100, U本位: 1/0.001', requiredBy: ['usdt_m_all', 'coin_m_all', 'avg_price_all', 'option_all'] },
+        'entryPrice': { label: '当前开仓均价', default: '30000', requiredBy: ['usdt_m_pnl', 'coin_m_pnl', 'spot_leverage_liquidation_price', 'option_bep'] },
+        'positionSize': { label: '当前总持仓张数', default: '100', requiredBy: ['usdt_m_all', 'coin_m_all', 'option_all'] },
+        'leverage': { label: '杠杆倍数', default: '20', requiredBy: ['usdt_m_immm', 'coin_m_immm', 'spot_leverage_max_leverage'] },
+        'markPrice': { label: '标记价格', default: '30500', requiredBy: ['usdt_m_pnl', 'usdt_m_value', 'coin_m_pnl', 'coin_m_value'] },
         
         // 保证金/费用/强平相关
-        'maintenanceMarginRate': { label: '维持保证金率 (MMR, %)', default: '0.5', requiredModes: ['usdt_m', 'coin_m', 'spot_leverage'] },
-        'feeRate': { label: '手续费率 (Fee, %)', default: '0.05', requiredModes: ['usdt_m', 'coin_m'] },
-        'accountBalance': { label: '保证金余额', default: '1500', note: 'U本位: USDT, 币本位: 标的币', requiredModes: ['usdt_m', 'coin_m', 'spot_leverage'] },
-        'fundingRate': { label: '资金费率 (Funding, %)', default: '0.01', requiredModes: ['usdt_m', 'coin_m'] },
-        'loanAmount': { label: '借入金额/数量', default: '0', note: '现货杠杆模式下使用', requiredModes: ['spot_leverage'] },
+        'maintenanceMarginRate': { label: '维持保证金率 (%)', default: '0.5', requiredBy: ['usdt_m_immm', 'usdt_m_mmr', 'usdt_m_liq', 'coin_m_immm', 'coin_m_mmr', 'coin_m_liq', 'spot_leverage_liquidation_price'] },
+        'feeRate': { label: '手续费率 (%)', default: '0.05', requiredBy: ['usdt_m_fee', 'usdt_m_liq', 'coin_m_fee', 'coin_m_liq'] },
+        'accountBalance': { label: '保证金余额', default: '1500', note: 'U本位: USDT, 币本位: 标的币', requiredBy: ['usdt_m_liq', 'coin_m_liq', 'spot_leverage_liquidation_price', 'spot_leverage_max_leverage'] },
+        'fundingRate': { label: '资金费率 (%)', default: '0.01', requiredBy: ['usdt_m_value', 'coin_m_value'] },
+        'loanAmount': { label: '借入金额/数量', default: '0', note: '现货杠杆模式下使用', requiredBy: ['spot_leverage_liquidation_price', 'spot_leverage_interest_cost'] },
 
-        // 均价计算相关
-        'newPositionSize': { label: '新增张数 (N)', default: '0', requiredModes: ['usdt_m', 'coin_m', 'avg_price'] },
-        'newEntryPrice': { label: '新增成交价 (P_new)', default: '0', requiredModes: ['usdt_m', 'coin_m', 'avg_price'] },
-        'oldPositionSize': { label: '原仓位张数 (O)', default: '100', requiredModes: ['avg_price'] },
-        'oldEntryPrice': { label: '原仓位开仓价 (P_old)', default: '30000', requiredModes: ['avg_price'] },
+        // 均价计算相关 (统一用 avg_price_all)
+        'newPositionSize': { label: '新增张数', default: '0', requiredBy: ['usdt_m_avg', 'coin_m_avg', 'avg_price_all'] },
+        'newEntryPrice': { label: '新增成交价', default: '0', requiredBy: ['usdt_m_avg', 'coin_m_avg', 'avg_price_all'] },
+        'oldPositionSize': { label: '原仓位张数', default: '100', requiredBy: ['avg_price_all'] },
+        'oldEntryPrice': { label: '原仓位开仓价', default: '30000', requiredBy: ['avg_price_all'] },
 
         // 期权相关
-        'strikePrice': { label: '期权执行价格 (K)', default: '30000', requiredModes: ['option'] },
-        'optionPremium': { label: '期权费 (P) / 均价', default: '500', requiredModes: ['option'] },
-        'optionMultiplier': { label: '合约乘数', default: '1', requiredModes: ['option'] },
+        'strikePrice': { label: '期权执行价格', default: '30000', requiredBy: ['option_bep', 'option_value'] },
+        'optionPremium': { label: '期权费 / 均价', default: '500', requiredBy: ['option_premium_fee', 'option_bep'] },
+        'optionMultiplier': { label: '合约乘数', default: '1', requiredBy: ['option_all'] },
     };
     
-    // --- 核心公式实现 (保持 V4.0 不变，略) ---
-    function calculateUsdtAvgEntry(M, O, P_old, N, P_new) { /* ... V4.0 code ... */
+    // --- 核心公式实现 (保持 V4.0/V5.0 不变，略) ---
+    function calculateUsdtAvgEntry(M, O, P_old, N, P_new) {
         if (O + N === 0) return P_old; 
         const P_old_calc = (O > 0 && P_old > 0) ? P_old : P_new;
         const S_total = O + N;
         const P_new_calc = (P_new === 0) ? P_old_calc : P_new;
-
         const numerator = (M * O * P_old_calc) + (M * N * P_new_calc);
         const denominator = M * S_total;
         return numerator / denominator;
     }
     
-    function calculateCoinAvgEntry(M, O, P_old, N, P_new) { /* ... V4.0 code ... */
+    function calculateCoinAvgEntry(M, O, P_old, N, P_new) {
         if (O + N === 0) return P_old;
         const P_old_calc = (O > 0 && P_old > 0) ? P_old : P_new;
         const P_new_calc = (P_new === 0) ? P_old_calc : P_new;
-        
         const numerator = M * (O + N);
         const denominator = (M * O / P_old_calc) + (M * N / P_new_calc);
         if (denominator === 0) return 0;
         return numerator / denominator;
     }
     
-    function calculateContractProfit(mode, M, S, P_entry, P_mark, direction) { /* ... V4.0 code ... */
+    function calculateContractProfit(mode, M, S, P_entry, P_mark, direction) {
         if (mode === 'usdt_m') {
             const diff = direction === 'long' ? (P_mark - P_entry) : (P_entry - P_mark);
             return M * S * diff;
@@ -212,29 +209,19 @@
         return 0;
     }
 
-    function calculateInitialMargin(mode, M, S, P_entry, L) { /* ... V4.0 code ... */
+    function calculateInitialMargin(mode, M, S, P_entry, L) {
         if (L === 0 || P_entry === 0) return 0;
-        if (mode === 'usdt_m') {
-            return (M * P_entry * S) / L;
-        } else if (mode === 'coin_m') {
-            return (M * S) / (P_entry * L);
-        }
-        return 0;
+        const nominalValue = mode === 'usdt_m' ? M * P_entry * S : M * S / P_entry;
+        return nominalValue / L;
     }
     
-    function calculateMaintenanceMargin(mode, M, S, MMR, P_mark) { /* ... V4.0 code ... */
-        const absS = Math.abs(S);
+    function calculateMaintenanceMargin(mode, M, S, MMR, P_mark) {
         const mmr = MMR / 100;
-        if (mode === 'usdt_m') {
-            return M * absS * mmr * P_mark;
-        } else if (mode === 'coin_m') {
-            if (P_mark === 0) return 0;
-            return (M * absS * mmr) / P_mark;
-        }
-        return 0;
+        const nominalValue = mode === 'usdt_m' ? M * S * P_mark : M * S / P_mark;
+        return nominalValue * mmr;
     }
-    
-    function calculateLiquidationPrice(mode, direction, M, S, P_entry, MMR, FeeRate, MarginBalance) { /* ... V4.0 code ... */
+
+    function calculateLiquidationPrice(mode, direction, M, S, P_entry, MMR, FeeRate, MarginBalance) {
         const fee = FeeRate / 100;
         const mmr = MMR / 100;
         const S_M = M * S;
@@ -249,9 +236,7 @@
                 const denominator = S_M * (1 - mmr);
                 return P_entry + (numerator / denominator);
             }
-        }
-        
-        else if (mode === 'coin_m') {
+        } else if (mode === 'coin_m') {
             if (direction === 'long') {
                 const numerator = S_M * (1 + mmr + fee);
                 const denominator = (S_M / P_entry) + MarginBalance;
@@ -266,47 +251,81 @@
         return 0;
     }
     
-    function calculateOptionBreakEven(direction, StrikePrice, Premium) { /* ... V4.0 code ... */
+    function calculateOptionBreakEven(direction, StrikePrice, Premium) {
         return direction === 'long' ? StrikePrice + Premium : StrikePrice - Premium;
     }
     
-    function calculateSpotLiquidation(Direction, Leverage, MMR, P_entry, MarginBalance, LoanAmount) { /* ... V4.0 code ... */
+    function calculateSpotLiquidation(Direction, L, MMR, P_entry, MarginBalance, LoanAmount) {
         const mmr = MMR / 100;
         if (Direction === 'long') {
-             // 简化现货做多爆仓价计算
-             return (LoanAmount * (1 + mmr)) / (MarginBalance / P_entry + LoanAmount / P_entry * (1 - mmr));
+             // P_liq ≈ (借款额 * (1+MMR)) / (总资产价值 / P_entry - 借款额 / P_entry * MMR)
+             // 简化为：
+             if (P_entry === 0) return 0;
+             const asset_qty = MarginBalance / P_entry + LoanAmount / P_entry;
+             const numerator = LoanAmount * (1 + mmr);
+             const denominator = asset_qty - MarginBalance / P_entry * mmr;
+             if (denominator <= 0) return Infinity;
+             return numerator / denominator;
         } else {
-             return 0; // 现货杠杆做空计算复杂，暂不实现
+             return 0; 
         }
     }
 
 
-    // --- UI 动态控制 (重构) ---
+    // --- UI 动态控制 (V6.0 核心逻辑) ---
+    
+    // 跟踪当前需要显示的字段 ID
+    let currentRequiredFields = new Set(); 
 
     function toggleInputs() {
         const mode = document.getElementById('mode').value;
         const inputArea = document.getElementById('inputArea');
         const checkboxesContainer = document.getElementById('calculationCheckboxes');
-        const calculationSelection = document.getElementById('calculationSelection');
-
         const config = CALC_ITEMS_CONFIG[mode];
 
-        // 1. 动态加载细项复选框 (二级)
-        if (config) {
-            calculationSelection.classList.remove('hidden');
-            checkboxesContainer.innerHTML = Object.entries(config.items).map(([key, label]) => {
-                const isChecked = config.defaultChecked.includes(key) ? 'checked' : '';
-                return `<input type="checkbox" id="calc_${key}" value="${key}" ${isChecked}><label for="calc_${key}">${label}</label>`;
-            }).join('');
-        } else {
-            calculationSelection.classList.add('hidden');
-        }
+        // 1. 动态加载细项复选框
+        checkboxesContainer.innerHTML = Object.entries(config.items).map(([key, label]) => {
+            const isChecked = config.defaultChecked.includes(key) ? 'checked' : '';
+            return `<input type="checkbox" id="calc_${key}" value="${key}" ${isChecked} onchange="updateInputFields(); calculateAll();"><label for="calc_${key}">${label}</label>`;
+        }).join('');
         
-        // 2. 动态加载输入字段 (三级)
+        // 2. 初始更新输入字段
+        updateInputFields();
+    }
+
+    function updateInputFields() {
+        const mode = document.getElementById('mode').value;
+        const inputArea = document.getElementById('inputArea');
+        const checkedItems = Array.from(document.querySelectorAll('#calculationCheckboxes input:checked')).map(cb => cb.value);
+        
+        currentRequiredFields.clear();
+
+        // 遍历所有字段配置，确定哪些字段需要显示
+        Object.entries(INPUT_FIELDS_CONFIG).forEach(([id, config]) => {
+            // 检查该字段是否被当前模式的任一选中细项所要求
+            const isRequired = config.requiredBy.some(required => {
+                const [reqMode, reqItem] = required.split('_');
+                
+                if (reqMode !== mode) return false;
+                
+                if (reqItem === 'all') {
+                    // 如果是 'all'，只要模式匹配就显示 (如合约面值)
+                    return true;
+                }
+                
+                // 细项匹配，且该细项被选中
+                return checkedItems.includes(reqItem);
+            });
+
+            if (isRequired) {
+                currentRequiredFields.add(id);
+            }
+        });
+        
+        // 3. 渲染输入字段
         inputArea.innerHTML = '';
         Object.entries(INPUT_FIELDS_CONFIG).forEach(([id, config]) => {
-            // 检查字段是否应在当前模式下显示
-            if (config.requiredModes.includes(mode)) {
+            if (currentRequiredFields.has(id)) {
                 let inputHtml;
                 if (config.type === 'select') {
                     // 下拉框
@@ -314,7 +333,7 @@
                     inputHtml = `<select id="${id}">${optionsHtml}</select>`;
                 } else {
                     // 输入框
-                    inputHtml = `<input type="number" id="${id}" value="${config.default}" placeholder="${config.note || ''}">`;
+                    inputHtml = `<input type="number" id="${id}" value="${config.default}" placeholder="">`;
                 }
 
                 let html = `
@@ -327,27 +346,20 @@
                 inputArea.insertAdjacentHTML('beforeend', html);
             }
         });
-        
-        // 3. 绑定事件并执行计算
-        document.querySelectorAll('#calculationCheckboxes input').forEach(checkbox => {
-            checkbox.addEventListener('change', calculateAll);
-        });
 
+        // 4. 重新计算 (在 toggleInputs 中已绑定)
         calculateAll();
     }
 
-
-    // --- 总计算函数 (与 V4.0 逻辑保持一致，但数据获取适配新 UI) ---
+    // --- 总计算函数 (与 V5.0 逻辑保持一致) ---
 
     function calculateAll() {
         const mode = document.getElementById('mode').value;
         const direction = document.getElementById('direction')?.value || 'long';
         
-        // 获取选中的细项
         const selectedCalculations = Array.from(document.querySelectorAll('#calculationCheckboxes input:checked')).map(cb => cb.value);
 
         const getValue = id => parseFloat(document.getElementById(id)?.value) || 0;
-        const getSelectValue = id => document.getElementById(id)?.value || '';
         
         // --- 核心数据获取 ---
         const M = getValue('contractFaceValue');
@@ -362,7 +374,7 @@
         
         const S_new = getValue('newPositionSize');
         const P_new = getValue('newEntryPrice');
-        const O_old = getValue('oldPositionSize') || S_old; // 修正均价模式 O_old 默认值
+        const O_old = getValue('oldPositionSize') || S_old; 
         const P_old = getValue('oldEntryPrice') || P_entry;
 
         const StrikePrice = getValue('strikePrice');
@@ -377,63 +389,68 @@
         const currency = mode === 'usdt_m' ? 'USDT' : '标的币';
         const priceUnit = ' $/币';
         const S_total = S_old + S_new;
-        const P_used = (S_new > 0) ? (mode === 'usdt_m' ? calculateUsdtAvgEntry(M, S_old, P_old, S_new, P_new) : calculateCoinAvgEntry(M, S_old, P_old, S_new, P_new)) : P_entry;
+        const P_used = (S_new > 0 || mode === 'avg_price') 
+            ? (mode === 'usdt_m' || mode === 'avg_price') 
+                ? calculateUsdtAvgEntry(M, O_old, P_old, S_new, P_new) 
+                : calculateCoinAvgEntry(M, O_old, P_old, S_new, P_new) 
+            : P_entry;
 
         // --- 模式逻辑 ---
         if (mode === 'avg_price') {
-            // ... (与 V4.0 相同) ...
             if (selectedCalculations.includes('usdt_avg')) {
                 const P_avg_usdt = calculateUsdtAvgEntry(M, O_old, P_old, S_new, P_new);
                 resultsHTML += `<div class="result-box"><span class="result-label">U本位平均开仓价:</span> <span class="result-value">${P_avg_usdt.toFixed(4)} ${priceUnit}</span></div>`;
-                formulasHTML += `$$ P_{\\text{avg\\_U}} = \\frac{M \\cdot O \\cdot P_{\\text{old}} + M \\cdot N \\cdot P_{\\text{new}}}{M \\cdot (O + N)} $$`;
+                formulasHTML += `<p>U本位均价 = (原仓位名义价值 + 新增仓位名义价值) / (总面值 * 总张数)</p>`;
             }
             if (selectedCalculations.includes('coin_avg')) {
                 const P_avg_coin = calculateCoinAvgEntry(M, O_old, P_old, S_new, P_new);
                 resultsHTML += `<div class="result-box"><span class="result-label">币本位平均开仓价:</span> <span class="result-value">${P_avg_coin.toFixed(4)} ${priceUnit}</span></div>`;
-                formulasHTML += `$$ P_{\\text{avg\\_Coin}} = \\frac{M \\cdot (O + N)}{M \\cdot O/P_{\\text{old}} + M \\cdot N/P_{\\text{new}}} $$`;
+                formulasHTML += `<p>币本位均价 = (总面值 * 总张数) / (原仓位价值 / P_old + 新增价值 / P_new)</p>`;
             }
         } else if (mode === 'usdt_m' || mode === 'coin_m') {
             // --- 合约计算 (U/币本位) ---
-            const P_avg = P_used; // 沿用 P_used
+            const P_avg = P_used; 
             const I_Margin = calculateInitialMargin(mode, M, S_total, P_used, L);
-            const M_Margin = calculateMaintenanceMargin(mode, M, S_total, MMR, P_mark);
             const PnL = calculateContractProfit(mode, M, S_total, P_used, P_mark, direction);
             const V_position = mode === 'usdt_m' ? (M * S_total * P_mark) : (M * S_total / P_mark);
+            const M_Margin = calculateMaintenanceMargin(mode, M, S_total, MMR, P_mark);
             const Fee = mode === 'usdt_m' ? (M * S_total * P_used * (FeeRate/100)) : (M * S_total / P_used * (FeeRate/100));
             const F_cost = V_position * (FundingRate / 100); 
             const P_liq = calculateLiquidationPrice(mode, direction, M, S_total, P_used, MMR, FeeRate, MarginBalance);
             const PnL_text = mode === 'coin_m' ? `${PnL.toFixed(6)} ${currency} ≈ ${(PnL * P_mark).toFixed(2)} USDT` : `${PnL.toFixed(2)} ${currency}`;
-            const V_text = mode === 'coin_m' ? `${V_position.toFixed(6)} ${currency} ≈ ${(V_position * P_mark).toFixed(2)} USDT` : `${V_position.toFixed(2)} ${currency}`;
-            const Equity = MarginBalance + PnL;
             const PnL_Ratio = (PnL / (I_Margin || MarginBalance)) * 100;
-            const CrossMMR = (M_Margin / V_position) * 100;
+            const CrossMMR = (M_Margin / (V_position || 1)) * 100;
 
             if (selectedCalculations.includes('avg')) {
-                 resultsHTML += `<div class="result-box"><span class="result-label">平均开仓价 (P_avg):</span> <span class="result-value">${P_avg.toFixed(4)} ${priceUnit}</span></div>`;
-                 formulasHTML += `$$ P_{\\text{avg}} = ${mode === 'usdt_m' ? '\\frac{\\sum (M \\cdot S \\cdot P)}{\\sum M \\cdot S}' : '\\frac{\\sum M \\cdot S}{\\sum M \\cdot S/P}'} $$`;
+                 resultsHTML += `<div class="result-box"><span class="result-label">平均开仓价:</span> <span class="result-value">${P_avg.toFixed(4)} ${priceUnit}</span></div>`;
+                 formulasHTML += `<p>开仓均价: 采用加权平均法计算。</p>`;
             }
             if (selectedCalculations.includes('pnl')) {
-                resultsHTML += `<div class="result-box"><span class="result-label">合约收益 (PnL):</span> <span class="result-value" style="color:${PnL >= 0 ? 'green' : 'red'};">${PnL_text}</span></div>`;
-                resultsHTML += `<div class="result-box"><span class="result-label">未实现收益率 (ROE):</span> <span class="result-value" style="color:${PnL >= 0 ? 'green' : 'red'};">${PnL_Ratio.toFixed(2)}%</span></div>`;
+                resultsHTML += `<div class="result-box"><span class="result-label">合约收益:</span> <span class="result-value" style="color:${PnL >= 0 ? 'green' : 'red'};">${PnL_text}</span></div>`;
+                resultsHTML += `<div class="result-box"><span class="result-label">未实现收益率:</span> <span class="result-value" style="color:${PnL >= 0 ? 'green' : 'red'};">${PnL_Ratio.toFixed(2)}%</span></div>`;
+                formulasHTML += `<p>U本位收益 = (标记价 - 均价) * 总张数 * 面值</p>`;
             }
             if (selectedCalculations.includes('fee')) {
                 resultsHTML += `<div class="result-box"><span class="result-label">开仓手续费:</span> <span class="result-value">${Fee.toFixed(4)} ${currency}</span></div>`;
+                formulasHTML += `<p>手续费 ≈ 名义价值 * 手续费率</p>`;
             }
             if (selectedCalculations.includes('immm')) {
-                resultsHTML += `<div class="result-box"><span class="result-label">开仓保证金 (IM):</span> <span class="result-value">${I_Margin.toFixed(4)} ${currency}</span></div>`;
-                resultsHTML += `<div class="result-box"><span class="result-label">维持保证金 (MM):</span> <span class="result-value">${M_Margin.toFixed(4)} ${currency}</span></div>`;
+                resultsHTML += `<div class="result-box"><span class="result-label">开仓保证金 (初始):</span> <span class="result-value">${I_Margin.toFixed(4)} ${currency}</span></div>`;
+                resultsHTML += `<div class="result-box"><span class="result-label">维持保证金:</span> <span class="result-value">${M_Margin.toFixed(4)} ${currency}</span></div>`;
+                formulasHTML += `<p>开仓保证金 = 名义价值 / 杠杆</p>`;
             }
             if (selectedCalculations.includes('mmr')) {
-                resultsHTML += `<div class="result-box"><span class="result-label">维持保证金率 (MMR, %):</span> <span class="result-value">${MMR.toFixed(2)}%</span></div>`;
-                resultsHTML += `<div class="result-box"><span class="result-label">跨币种维持保证金率 (基于仓位价值):</span> <span class="result-value">${CrossMMR.toFixed(4)}%</span></div>`;
+                resultsHTML += `<div class="result-box"><span class="result-label">维持保证金率:</span> <span class="result-value">${MMR.toFixed(2)}%</span></div>`;
+                resultsHTML += `<div class="result-box"><span class="result-label">跨币种维持保证金率:</span> <span class="result-value">${CrossMMR.toFixed(4)}%</span></div>`;
             }
             if (selectedCalculations.includes('value')) {
-                resultsHTML += `<div class="result-box"><span class="result-label">仓位价值 (V):</span> <span class="result-value">${V_text}</span></div>`;
-                resultsHTML += `<div class="result-box"><span class="result-label">预估资金费用 (FF):</span> <span class="result-value">${F_cost.toFixed(4)} ${currency}</span></div>`;
+                resultsHTML += `<div class="result-box"><span class="result-label">仓位价值:</span> <span class="result-value">${mode === 'coin_m' ? V_position.toFixed(6) + ' ' + currency : V_position.toFixed(2) + ' ' + currency}</span></div>`;
+                resultsHTML += `<div class="result-box"><span class="result-label">预估资金费用:</span> <span class="result-value">${F_cost.toFixed(4)} ${currency}</span></div>`;
+                formulasHTML += `<p>资金费用 = 仓位名义价值 * 资金费率</p>`;
             }
             if (selectedCalculations.includes('liq')) {
-                resultsHTML += `<div class="result-box"><span class="result-label">预估强平价 (P_liq):</span> <span class="result-value" style="color:#dc3545;">${P_liq.toFixed(4)} ${priceUnit}</span></div>`;
-                formulasHTML += `$$ P_{\\text{liq}} \\approx \\text{公式复杂，请参考交易所文档} $$`;
+                resultsHTML += `<div class="result-box"><span class="result-label">预估强平价:</span> <span class="result-value" style="color:#dc3545;">${P_liq.toFixed(4)} ${priceUnit}</span></div>`;
+                formulasHTML += `<p>强平价计算涉及到开仓均价、保证金余额、维持保证金率和手续费，具体公式请参考交易所文档。</p>`;
             }
         } else if (mode === 'spot_leverage') {
             // --- 现货杠杆计算 ---
@@ -442,6 +459,7 @@
             
             if (selectedCalculations.includes('liquidation_price')) {
                  resultsHTML += `<div class="result-box"><span class="result-label">预估爆仓价:</span> <span class="result-value" style="color:#dc3545;">${P_liq_spot.toFixed(4)} ${priceUnit}</span></div>`;
+                 formulasHTML += `<p>爆仓价 = (借款额 * (1+MMR)) / (总资产 - 保证金 * MMR) </p>`;
             }
             if (selectedCalculations.includes('interest_cost')) {
                  resultsHTML += `<div class="result-box"><span class="result-label">预估每小时利息费用:</span> <span class="result-value">${LoanCost.toFixed(6)} USDT</span></div>`;
@@ -450,17 +468,21 @@
                  resultsHTML += `<div class="result-box"><span class="result-label">最大可借额度（理论值）:</span> <span class="result-value">${(MarginBalance * (L - 1)).toFixed(2)} USDT</span></div>`;
             }
         } else if (mode === 'option') {
-            // --- 期权计算 (强制全选) ---
+            // --- 期权计算 ---
             const TotalPremium = OptionPremium * Multiplier * S_old; 
             const BEP = calculateOptionBreakEven(direction, StrikePrice, OptionPremium);
             const OptionValue = StrikePrice * Multiplier * S_old; 
             
-            resultsHTML += `
-                <div class="result-box"><span class="result-label">总期权费支出/收入:</span> <span class="result-value" style="color:${direction === 'long' ? 'red' : 'green'};">${TotalPremium.toFixed(4)} $</span></div>
-                <div class="result-box"><span class="result-label">盈亏平衡点 (BEP):</span> <span class="result-value" style="color:#007bff;">${BEP.toFixed(4)} $</span></div>
-                <div class="result-box"><span class="result-label">期权名义市值:</span> <span class="result-value">${OptionValue.toFixed(4)} $</span></div>
-            `;
-            formulasHTML += `$$ P_{\\text{BEP}} = K \\pm P $$`;
+            if (selectedCalculations.includes('premium_fee')) {
+                resultsHTML += `<div class="result-box"><span class="result-label">总期权费支出/收入:</span> <span class="result-value" style="color:${direction === 'long' ? 'red' : 'green'};">${TotalPremium.toFixed(4)} $</span></div>`;
+            }
+            if (selectedCalculations.includes('bep')) {
+                resultsHTML += `<div class="result-box"><span class="result-label">盈亏平衡点 (BEP):</span> <span class="result-value" style="color:#007bff;">${BEP.toFixed(4)} $</span></div>`;
+                formulasHTML += `<p>盈亏平衡点 = 执行价 ± 期权费</p>`;
+            }
+            if (selectedCalculations.includes('value')) {
+                resultsHTML += `<div class="result-box"><span class="result-label">期权名义市值:</span> <span class="result-value">${OptionValue.toFixed(4)} $</span></div>`;
+            }
         }
 
         if (resultsHTML === '') {
@@ -478,6 +500,7 @@
 
     // 初始化调用
     document.addEventListener('DOMContentLoaded', () => {
+        // 初始加载 MathJax 和 UI
         if (typeof MathJax !== 'undefined') {
              MathJax.typesetPromise().then(() => {
                 toggleInputs();
