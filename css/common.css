@@ -1,0 +1,372 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  background: radial-gradient(circle at top left, #162447, #020617 55%);
+  color: #e5f0ff;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.app-shell {
+  width: 100%;
+  max-width: 1440px;
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  background: rgba(10, 18, 40, 0.9);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(90, 140, 255, 0.3);
+}
+
+/* 左侧栏 */
+
+.sidebar {
+  background: radial-gradient(circle at top left, #0f172a, #020617);
+  padding: 20px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-right: 1px solid rgba(75, 85, 99, 0.7);
+}
+
+.sidebar-header {
+  padding: 8px 4px 12px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: #9ca3ff;
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(129, 140, 248, 0.6);
+  margin-bottom: 8px;
+}
+
+.app-title {
+  font-size: 24px;
+  margin: 0 0 6px;
+}
+
+.app-desc {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #a5b4fc;
+}
+
+.sidebar-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #93c5fd;
+  margin: 4px 4px;
+}
+
+.area-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.area-item {
+  text-align: left;
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 16px;
+  padding: 10px 12px;
+  border: 1px solid rgba(55, 65, 81, 0.8);
+  color: #e5f0ff;
+  cursor: pointer;
+  transition: all 0.18s ease-out;
+}
+
+.area-item:hover {
+  border-color: rgba(96, 165, 250, 0.9);
+  background: radial-gradient(circle at top left, #111827, #020617);
+}
+
+.area-item-active {
+  border-color: #38bdf8;
+  background: radial-gradient(circle at top left, #1d4ed8, #020617);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.5), 0 18px 40px rgba(15, 118, 210, 0.5);
+}
+
+.area-title {
+  font-size: 15px;
+  margin-bottom: 2px;
+}
+
+.area-sub {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.sidebar-tip {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(75, 85, 99, 0.8);
+  font-size: 11px;
+  line-height: 1.6;
+  color: #9ca3af;
+}
+
+/* 右侧主区域 */
+
+.main-panel {
+  padding: 18px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.main-header-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.main-header-sub {
+  font-size: 12px;
+  color: #c4d3ff;
+  margin-top: 4px;
+}
+
+/* 二级 tab */
+
+.calc-tabs {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.calc-tab {
+  border-radius: 999px;
+  border: 1px solid rgba(75, 85, 99, 0.9);
+  background: rgba(15, 23, 42, 0.8);
+  color: #e5e7eb;
+  font-size: 12px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: all 0.16s ease-out;
+}
+
+.calc-tab:hover {
+  border-color: rgba(96, 165, 250, 0.9);
+  background: rgba(30, 64, 175, 0.9);
+}
+
+.calc-tab-active {
+  border-color: #38bdf8;
+  background: linear-gradient(90deg, #1d4ed8, #06b6d4);
+  color: #f9fafb;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.5);
+}
+
+/* 输入 + 结果 布局 */
+
+.calc-layout {
+  margin-top: 10px;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 14px;
+  min-height: 0;
+}
+
+.input-panel,
+.result-panel {
+  background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.98), rgba(2, 6, 23, 0.98));
+  border-radius: 20px;
+  padding: 14px 16px 12px;
+  border: 1px solid rgba(55, 65, 81, 0.85);
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.8);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-title {
+  font-size: 15px;
+  margin: 0;
+}
+
+.panel-subtitle {
+  font-size: 12px;
+  margin: 0;
+  color: #9ca3af;
+}
+
+.panel-footnote {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+/* 表单 */
+
+.form-fields {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 999px;
+  padding: 4px 10px;
+  border: 1px solid rgba(55, 65, 81, 0.9);
+}
+
+.form-label {
+  font-size: 12px;
+  color: #e5e7eb;
+  min-width: 96px;  /* 名称固定宽度，右边输入框对齐 */
+}
+
+.form-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #f9fafb;
+  font-size: 13px;
+  outline: none;
+}
+
+.form-input::placeholder {
+  color: #6b7280;
+}
+
+.form-unit {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* 按钮 */
+
+.form-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  min-width: 90px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(55, 65, 81, 0.9);
+  background: rgba(15, 23, 42, 0.9);
+  color: #e5e7eb;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease-out;
+}
+
+.btn:hover {
+  border-color: rgba(96, 165, 250, 0.9);
+  background: rgba(30, 64, 175, 0.9);
+}
+
+.btn-primary {
+  background: linear-gradient(90deg, #2563eb, #06b6d4);
+  border-color: transparent;
+  color: #f9fafb;
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.55);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.05);
+}
+
+/* 结果区 */
+
+.result-subtitle {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.result-textarea {
+  margin-top: 6px;
+  flex: 0 0 120px;
+  resize: vertical;
+  min-height: 110px;
+  max-height: 220px;
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(55, 65, 81, 0.9);
+  background: radial-gradient(circle at top left, #0b1220, #020617);
+  color: #e5e7eb;
+  font-size: 13px;
+  padding: 8px 10px;
+  outline: none;
+}
+
+.result-textarea::placeholder {
+  color: #6b7280;
+}
+
+.formula-wrapper {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px dashed rgba(75, 85, 99, 0.9);
+}
+
+.formula-title {
+  font-size: 12px;
+  color: #c4d3ff;
+  margin-bottom: 4px;
+}
+
+.formula-line {
+  font-size: 12px;
+  color: #9ca3af;
+  line-height: 1.6;
+}
+
+.formula-line + .formula-line {
+  margin-top: 4px;
+}
+
+.version-text {
+  margin-top: auto;
+  font-size: 11px;
+  color: #6b7280;
+  text-align: right;
+}
+
+/* 响应式：窄屏改成上下排列 */
+
+@media (max-width: 1100px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid rgba(55, 65, 81, 0.9);
+  }
+  .calc-layout {
+    grid-template-columns: 1fr;
+  }
+}
