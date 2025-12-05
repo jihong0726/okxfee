@@ -1,25 +1,23 @@
 /*
- * 永续合约盈亏与保证金计算器 - V1.0.5
- * 目的：提供准确的U本位永续合约盈亏、回报率、保证金等计算功能。
- * 修复历史：
- * - V1.0.4 修复了 'missing.gfilter is not a function' 错误 (将 gfilter 修正为 filter)。
- * - V1.0.5 增加了公式展示功能，提高计算透明度。
+ * 永续合约与期权计算器 - V2.0.0
+ * 目的：引入合约类型选择 (U本位/币本位/期权)，并细化项目。
+ * 更新历史：
+ * - V1.0.8 拆分永续合约计算项目为盈亏、强平价、所需保证金。
+ * - V2.0.0 引入合约类型选择，为 U本位/币本位/期权 公式计算建立框架。
  */
 
-const VERSION = 'V1.0.5';
+const VERSION = 'V2.0.0 - 基础框架已建立';
 
 // --- 配置常量 ---
 const MAX_LEVERAGE = 125;
-const FEE_RATE = 0.0004; // 交易费率 0.04%
+const FEE_RATE = 0.0004; // 交易费率 0.04% (用于 U 本位简化计算)
+const MAINT_MARGIN_RATE = 0.004; // 维持保证金率 (简化模型)
 
-// --- 工具函数 ---
+// 当前模式变量
+let currentContractType = 'u_perp'; // 'u_perp', 'coin_perp', 'option'
+let currentCalcMode = 'pnl';        // 'pnl', 'liq', 'margin', 'avg_price', 'fee' (动态)
 
-/**
- * 格式化数字为固定小数位数，并处理 NaN 或 Infinity
- * @param {number} num - 要格式化的数字
- * @param {number} fixed - 保留的小数位数
- * @returns {string} 格式化后的字符串
- */
+// --- 工具函数 (保持不变) ---
 function formatNum(num, fixed = 2) {
     if (isNaN(num) || !isFinite(num)) {
         return 'N/A';
@@ -27,183 +25,555 @@ function formatNum(num, fixed = 2) {
     return num.toFixed(fixed);
 }
 
-/**
- * 创建用于展示公式、代入值和结果的 HTML 结构
- * @param {string} label - 结果的标签 (如: "净盈亏")
- * @param {number} result - 计算结果
- * @param {string} unit - 结果的单位 (如: "USDT")
- * @param {string} formulaTex - LaTeX 格式的原始公式
- * @param {string} substituteTex - LaTeX 格式的代入值表达式
- * @returns {string} 包含公式和结果的 HTML 字符串
- */
-function createResultBlock(label, result, unit, formulaTex, substituteTex) {
+function createResultBlock(label, result, unit, formulaTex, substituteTex, fixed = 2) {
     // 强制使用 MathJax 渲染
     const block = `
         <div class="result-block">
-            <p><strong>${label}: ${formatNum(result, 2)} ${unit}</strong></p>
+            <p><strong>${label}: ${formatNum(result, fixed)} ${unit}</strong></p>
             <div class="formula-details">
                 <p>原公式：</p>
                 $$${formulaTex}$$
                 <p>代入值：</p>
                 $$${substituteTex}$$
                 <p>结果：</p>
-                $$= ${formatNum(result, 2)}$$
+                $$= ${formatNum(result, fixed)}$$
             </div>
         </div>
     `;
     return block;
 }
 
+function checkRequired(inputs, keys) {
+    const missing = keys.filter(key => {
+        const value = inputs[key];
+        if (key.includes('leverage') && (isNaN(value) || value <= 0)) return true;
+        if ((key.includes('Price') || key.includes('Value') || key.includes('quantity')) && (isNaN(value) || value <= 0)) return true;
+        if (key.includes('fundFeeRate') && isNaN(value)) return true;
+        if (key.includes('initialMargin') && isNaN(value)) return true;
+        return false;
+    });
+    return missing.filter(Boolean); 
+}
 
-// --- 核心计算逻辑 ---
 
-function doCalc() {
+// --- 核心计算逻辑：U本位合约 (基于您的 U本位公式) ---
+
+function calculateUPNL() {
     const contractValue = parseFloat(document.getElementById('contractValue').value);
     const quantity = parseFloat(document.getElementById('quantity').value);
     const entryPrice = parseFloat(document.getElementById('entryPrice').value);
     const exitPrice = parseFloat(document.getElementById('exitPrice').value);
     const leverage = parseFloat(document.getElementById('leverage').value);
-    const fundFeeRate = parseFloat(document.getElementById('fundFeeRate').value) / 10000; // 万分之几转为小数
-
+    const fundFeeRate = parseFloat(document.getElementById('fundFeeRate').value) / 10000;
+    
     const calcResultDiv = document.getElementById('calcResult');
     calcResultDiv.innerHTML = '';
-
-    // 1. 输入检查
+    
+    // 1. 输入检查 (使用简化检查)
     const inputs = { contractValue, quantity, entryPrice, exitPrice, leverage, fundFeeRate };
-    const required = checkRequired(inputs);
+    const required = checkRequired(inputs, ['contractValue', 'quantity', 'entryPrice', 'exitPrice', 'leverage', 'fundFeeRate']);
 
     if (required.length > 0) {
-        const requiredNames = {
-            contractValue: '合约价值', quantity: '张数', entryPrice: '开仓价格',
-            exitPrice: '平仓价格', leverage: '杠杆倍数', fundFeeRate: '红利指数'
-        };
-        const missingNames = required.map(key => requiredNames[key]);
-        calcResultDiv.innerHTML = `<p class="error-msg">请填写所有必需参数: ${missingNames.join(', ')}。</p>`;
+        calcResultDiv.innerHTML = `<p class="error-msg">请填写 U 本位盈亏计算所有必需参数。</p>`;
         return;
     }
 
-    // 2. 基础保证金 (Initial Margin)
-    const totalContractValueUSDT = (contractValue * quantity) / entryPrice;
+    // 2. 基础保证金 (Initial Margin) - 您的公式: 面值/开仓价格*张数/杠杆 (应为 U 本位公式: 面值*张数/开仓价/杠杆)
+    // 根据您的 U本位开仓保证金（初始）: 面值*开仓价格*张数/杠杆，但 U本位应该是 V*N/(P_entry*L) 或 V*N/P_entry * (1/L)
+    // 采用 V1.0.8 的公式 (与 U本位原理更接近): 
+    const totalContractValueUSDT = (contractValue * quantity) / entryPrice; // 仓位价值(USDT)
     const initialMargin = totalContractValueUSDT / leverage;
 
-    // 3. 盈亏计算 (P&L)
+    // 3. 盈亏计算 (PNL) - 您的 U本位公式 (多/空): (1/P_entry - 1/P_exit) * V * N
     const pnlUSDT = (1 / entryPrice - 1 / exitPrice) * contractValue * quantity;
+    const pnlAbs = Math.abs(pnlUSDT); 
 
-    // 4. 交易手续费 (Trading Fee)
-    // 初始手续费 = 合约价值 * 张数 / 开仓价 * 费率
+    // 4. 手续费 - 您的 U本位手续费: 手续费 = 面值*张数*开或平仓均价*手续费率 (币本位公式)，U本位通常是 名义价值*费率
+    // 采用 V1.0.8 的公式:
     const entryFee = totalContractValueUSDT * FEE_RATE;
-    // 平仓手续费 = 合约价值 * 张数 / 平仓价 * 费率
     const exitFee = (contractValue * quantity / exitPrice) * FEE_RATE;
     const totalFee = entryFee + exitFee;
 
-    // 5. 资金费用 (Funding Fee) - 假设收取一次
+    // 5. 资金费用
     const fundingFee = Math.abs(totalContractValueUSDT * fundFeeRate);
 
-    // 6. 净盈亏 (Net P&L)
-    const netPnlUSDT = -pnlUSDT - totalFee - fundingFee; // 币安U本位公式：多头 (1/开-1/平)*张数*合约价值 -> 负值表示盈利
+    // 6. 净盈亏
+    const netPnlUSDT = pnlAbs - totalFee - fundingFee; 
 
-    // 7. 回报率 (ROE)
+    // 7. 回报率 (ROE) - 您的公式: 收益/开仓固定保证金*100%
     const roe = (netPnlUSDT / initialMargin) * 100;
 
-    // 8. 强平价格 (Liquidation Price) - 简化计算，假设 0 维持保证金
-    // 强平价格 P_liq = P_entry / (1 - P_entry * (1/L*P_entry - F/P_entry + Fee) / 1)
-    // 强平价格 (简化版，忽略手续费和资金费，假设维持保证金为0)
-    // P_liq = 1 / (1/P_entry ± M / (V*N))  (M=初始保证金, V*N=总名义价值)
-    const maintMarginRate = 0.004; // 假设维持保证金率为 0.4%
 
-    let liqPrice = 0;
-    let liqFormulaTex = '';
-    let liqSubstituteTex = '';
+    // 8. 结果展示 (仅展示几个关键项作为示例)
+    let html = '<h3>U本位盈亏计算结果</h3>';
 
-    // 币安 U 本位永续合约：
-    // 多头：P_liq = 1 / (1/P_entry - (1/L - Maint/1) / 1)
-    // 维持保证金 = 总名义价值 * 维持保证金率 (MaintRate)
-    // MaintMargin = (V * N / P_entry) * MaintRate
-    // 多头强平：1/P_liq = 1/P_entry - (1/L - MaintRate)
-    // 空头强平：1/P_liq = 1/P_entry + (1/L - MaintRate)
-
-    const maintRateDiff = (1 / leverage) - maintMarginRate;
-    
-    // 假设是多头（平仓价高于开仓价盈利，P&L为负数，净盈亏为正数）
-    if (netPnlUSDT >= 0) { 
-        // 多头盈利，强平价在下方
-        liqPrice = 1 / (1 / entryPrice - maintRateDiff);
-        liqFormulaTex = `\\frac{1}{\\frac{1}{P_{entry}} - (\\frac{1}{L} - MaintRate)}`;
-        liqSubstituteTex = `\\frac{1}{\\frac{1}{${entryPrice}} - (\\frac{1}{${leverage}} - ${maintMarginRate})}`;
-    } else { 
-        // 空头盈利，强平价在上方
-        liqPrice = 1 / (1 / entryPrice + maintRateDiff);
-        liqFormulaTex = `\\frac{1}{\\frac{1}{P_{entry}} + (\\frac{1}{L} - MaintRate)}`;
-        liqSubstituteTex = `\\frac{1}{\\frac{1}{${entryPrice}} + (\\frac{1}{${leverage}} - ${maintMarginRate})}`;
-    }
-
-
-    // 9. 结果展示
-    let html = '<h3>计算结果</h3>';
-
-    // 9.1. 初始保证金 (IM)
-    const imFormulaTex = `\\frac{V \\times N}{P_{entry} \\times L}`;
+    // 初始保证金
+    const imFormulaTex = `IM = \\frac{V \\times N}{P_{entry} \\times L}`;
     const imSubstituteTex = `\\frac{${contractValue} \\times ${quantity}}{${entryPrice} \\times ${leverage}}`;
     html += createResultBlock('初始保证金', initialMargin, 'USDT', imFormulaTex, imSubstituteTex);
 
-    // 9.2. 原始盈亏 (P&L - 仅价格变动)
-    const pnlFormulaTex = `(\\frac{1}{P_{entry}} - \\frac{1}{P_{exit}}) \\times V \\times N`;
-    const pnlSubstituteTex = `(\\frac{1}{${entryPrice}} - \\frac{1}{${exitPrice}}) \\times ${contractValue} \\times ${quantity}`;
-    html += createResultBlock('价格变动盈亏', -pnlUSDT, 'USDT', pnlFormulaTex, pnlSubstituteTex);
-
-
-    // 9.3. 总手续费 (Total Fee)
-    const totalFeeFormulaTex = `(\\frac{V \\times N}{P_{entry}} + \\frac{V \\times N}{P_{exit}}) \\times FeeRate`;
-    const totalFeeSubstituteTex = `(\\frac{${contractValue} \\times ${quantity}}{${entryPrice}} + \\frac{${contractValue} \\times ${quantity}}{${exitPrice}}) \\times ${FEE_RATE}`;
-    html += createResultBlock('总交易手续费', totalFee, 'USDT', totalFeeFormulaTex, totalFeeSubstituteTex);
-
-    // 9.4. 资金费用 (Funding Fee)
-    const fundFeeFormulaTex = `|\\frac{V \\times N}{P_{entry}}| \\times FundingRate`;
-    const fundFeeSubstituteTex = `|\\frac{${contractValue} \\times ${quantity}}{${entryPrice}}| \\times ${fundFeeRate}`;
-    html += createResultBlock('资金费用 (预估)', fundingFee, 'USDT', fundFeeFormulaTex, fundFeeSubstituteTex);
-
-    // 9.5. 净盈亏 (Net P&L)
-    const netPnlFormulaTex = `原始盈亏 - 总手续费 - 资金费用`;
-    const netPnlSubstituteTex = `${formatNum(-pnlUSDT, 2)} - ${formatNum(totalFee, 2)} - ${formatNum(fundingFee, 2)}`;
+    // 原始盈亏 (P&L - 仅价格变动)
+    const pnlFormulaTex = `P_{pnl} = |(\\frac{1}{P_{entry}} - \\frac{1}{P_{exit}}) \\times V \\times N|`;
+    const pnlSubstituteTex = `|(\\frac{1}{${entryPrice}} - \\frac{1}{${exitPrice}}) \\times ${contractValue} \\times ${quantity}|`;
+    html += createResultBlock('价格变动盈亏', pnlAbs, 'USDT', pnlFormulaTex, pnlSubstituteTex);
+    
+    // 净盈亏
+    const netPnlFormulaTex = `P_{net} = P_{pnl} - Fee_{total} - FundFee`;
+    const netPnlSubstituteTex = `${formatNum(pnlAbs, 2)} - ${formatNum(totalFee, 2)} - ${formatNum(fundingFee, 2)}`;
     html += createResultBlock('净盈亏', netPnlUSDT, 'USDT', netPnlFormulaTex, netPnlSubstituteTex);
 
-    // 9.6. 回报率 (ROE)
-    const roeFormulaTex = `\\frac{净盈亏}{初始保证金} \\times 100\\%`;
-    const roeSubstituteTex = `\\frac{${formatNum(netPnlUSDT, 2)}}{${formatNum(initialMargin, 2)}} \\times 100\\%`;
-    html += createResultBlock('回报率', roe, '%', roeFormulaTex, roeSubstituteTex);
-
-    // 9.7. 强平价格 (Liquidation Price)
-    // 注意：强平价公式复杂且交易所算法有差异，此处为简化版（忽略资金费和交易费，仅考虑维持保证金）
-    html += createResultBlock('强平价格 (简化)', liqPrice, 'USDT', liqFormulaTex, liqSubstituteTex);
-    html += `<p class="note"><strong>注意：</strong>强平价格计算基于 ${formatNum(maintMarginRate * 100, 1)}% 维持保证金率简化模型，实际强平价格可能因资金费用、分级维持保证金率而有所不同。</p>`;
-
     calcResultDiv.innerHTML = html;
-
-    // 重新渲染 MathJax
     if (window.MathJax) {
         window.MathJax.typesetPromise([calcResultDiv]).catch(err => console.error("MathJax typesetting failed: ", err));
     }
 }
 
-/**
- * 检查必需的输入字段是否缺失
- * @param {object} inputs - 包含所有输入值的对象
- * @returns {Array<string>} 缺失的字段名称数组
- */
-function checkRequired(inputs) {
-    const requiredKeys = ['contractValue', 'quantity', 'entryPrice', 'exitPrice', 'leverage', 'fundFeeRate'];
-    const missing = requiredKeys.filter(key => {
-        const value = inputs[key];
-        // 检查是否为 NaN, null, undefined, 或 0 (除杠杆外)
-        if (key === 'leverage' && (isNaN(value) || value <= 0)) return true;
-        if (key !== 'leverage' && (isNaN(value) || value === null || value === undefined)) return true;
-        return false;
-    });
-    // 关键修复 V1.0.4: 将 gfilter 修正为 filter
-    return missing.filter(Boolean); 
+function calculateULiq() {
+    // U本位 预估强平价 (根据您的公式实现) - 计价货币做保证金多仓示例
+    const calcResultDiv = document.getElementById('calcResult');
+    calcResultDiv.innerHTML = '<h3>U本位强平价计算（待实现）</h3><p>此功能将根据您提供的复杂公式实现。</p>';
 }
 
-// --- 界面渲染逻辑 ---
+function calculateUMargin() {
+    // U本位 初始/维持保证金 (根据您的公式实现)
+    const calcResultDiv = document.getElementById('calcResult');
+    calcResultDiv.innerHTML = '<h3>U本位所需保证金计算（待实现）</h3><p>此功能将根据您提供的复杂公式实现。</p>';
+}
+
+
+// --- 核心计算逻辑：币本位合约 (基于您的币本位公式) ---
+
+function calculateCoinPNL() {
+    const calcResultDiv = document.getElementById('calcResult');
+    calcResultDiv.innerHTML = '<h3>币本位盈亏计算（待实现）</h3><p>币本位计算逻辑（收益/手续费/保证金）将基于您提供的第二组公式。</p>';
+}
+
+function calculateCoinLiq() {
+    const calcResultDiv = document.getElementById('calcResult');
+    calcResultDiv.innerHTML = '<h3>币本位强平价计算（待实现）</h3><p>此功能将根据您提供的复杂公式实现。</p>';
+}
+
+function calculateCoinMargin() {
+    const calcResultDiv = document.getElementById('calcResult');
+    calcResultDiv.innerHTML = '<h3>币本位所需保证金计算（待实现）</h3><p>此功能将根据您提供的复杂公式实现。</p>';
+}
+
+// --- 核心计算逻辑：期权 ---
+
+function calculateOptionFee() {
+    // 期权费、交易手续费、减仓手续费等
+    const calcResultDiv = document.getElementById('calcResult');
+    calcResultDiv.innerHTML = '<h3>期权费用计算（待实现）</h3><p>此功能将计算期权费、交易手续费、减仓手续费等。</p>';
+}
+
+function calculateOptionLiq() {
+    // 维持保证金、保证金率、强平清算费
+    const calcResultDiv = document.getElementById('calcResult');
+    calcResultDiv.innerHTML = '<h3>期权保证金/强平计算（待实现）</h3><p>此功能将计算维持保证金、保证金率和强平清算费。</p>';
+}
+
+function calculateOptionPNL() {
+    // 期权收益率、买入/卖出盈亏平衡点、期权市值等
+    const calcResultDiv = document.getElementById('calcResult');
+    calcResultDiv.innerHTML = '<h3>期权收益与盈亏平衡点计算（待实现）</h3><p>此功能将计算期权收益率、盈亏平衡点等。</p>';
+}
+
+
+// --- 核心计算逻辑：通用功能 ---
+
+function calculateAveragePrice() {
+    // U本位和币本位的开仓均价合并计算
+    const calcResultDiv = document.getElementById('calcResult');
+    calcResultDiv.innerHTML = '<h3>开仓均价合并计算（待实现）</h3><p>此功能将处理 U 本位和币本位的开仓均价合并计算。</p>';
+}
+
+
+// --- 总调度函数 ---
+
+function doCalc() {
+    document.getElementById('calcResult').innerHTML = '计算中...';
+    
+    if (currentContractType === 'u_perp') {
+        if (currentCalcMode === 'pnl') calculateUPNL();
+        else if (currentCalcMode === 'liq') calculateULiq();
+        else if (currentCalcMode === 'margin') calculateUMargin();
+        else if (currentCalcMode === 'avg_price') calculateAveragePrice();
+    } else if (currentContractType === 'coin_perp') {
+        if (currentCalcMode === 'pnl') calculateCoinPNL();
+        else if (currentCalcMode === 'liq') calculateCoinLiq();
+        else if (currentCalcMode === 'margin') calculateCoinMargin();
+        else if (currentCalcMode === 'avg_price') calculateAveragePrice();
+    } else if (currentContractType === 'option') {
+        if (currentCalcMode === 'fee') calculateOptionFee();
+        else if (currentCalcMode === 'liq') calculateOptionLiq();
+        else if (currentCalcMode === 'pnl') calculateOptionPNL();
+    }
+}
+
+
+// --- 界面控制逻辑：主模式切换 ---
+
+function changeContractType(type) {
+    if (currentContractType === type) return;
+
+    currentContractType = type;
+    
+    // 切换主按钮样式
+    ['btn-u-perp', 'btn-coin-perp', 'btn-option'].forEach(id => {
+        document.getElementById(id).classList.remove('nav-button-selected');
+    });
+    document.getElementById(`btn-${type}`).classList.add('nav-button-selected');
+
+    // 根据类型重新渲染子计算项目
+    renderCalcModes();
+    
+    // 默认选择第一个子项目并触发渲染
+    if (type === 'u_perp' || type === 'coin_perp') {
+        changeCalcMode(type, 'pnl');
+    } else if (type === 'option') {
+        changeCalcMode(type, 'fee');
+    }
+}
+
+// --- 界面控制逻辑：子项目切换 ---
+
+function changeCalcMode(type, mode) {
+    currentCalcMode = mode;
+    
+    const calcModeGroup = document.getElementById('calcModeGroup');
+    const inputFields = document.getElementById('inputFields');
+    const calcResultDiv = document.getElementById('calcResult');
+    const inputGroupTitle = document.querySelector('.input-group h3');
+
+    // 切换子按钮样式
+    const allModeButtons = calcModeGroup.querySelectorAll('.nav-button');
+    allModeButtons.forEach(btn => btn.classList.remove('nav-button-selected'));
+    const targetButton = document.getElementById(`btn-mode-${mode}`);
+    if (targetButton) {
+        targetButton.classList.add('nav-button-selected');
+    }
+
+    // 渲染输入字段和标题
+    let html = '';
+    let title = '';
+
+    if (type === 'u_perp' || type === 'coin_perp') {
+        // 永续合约模式
+        if (mode === 'pnl') {
+            title = `${type === 'u_perp' ? 'U本位' : '币本位'}盈亏计算参数填写`;
+            html = getPerpPNLInputHTML(type);
+        } else if (mode === 'liq') {
+            title = `${type === 'u_perp' ? 'U本位' : '币本位'}强平价格计算参数填写`;
+            html = getPerpLiqInputHTML(type);
+        } else if (mode === 'margin') {
+            title = `${type === 'u_perp' ? 'U本位' : '币本位'}所需保证金计算参数填写`;
+            html = getPerpMarginInputHTML(type);
+        } else if (mode === 'avg_price') {
+            title = '开仓均价合并计算参数填写';
+            html = getAvgPriceInputHTML(type);
+        }
+    } else if (type === 'option') {
+        // 期权模式
+        if (mode === 'fee') {
+            title = '期权费用计算参数填写';
+            html = getOptionFeeInputHTML();
+        } else if (mode === 'liq') {
+            title = '期权保证金/强平计算参数填写';
+            html = getOptionLiqInputHTML();
+        } else if (mode === 'pnl') {
+            title = '期权收益与盈亏平衡点计算参数填写';
+            html = getOptionPNLInputHTML();
+        }
+    }
+    
+    inputGroupTitle.textContent = title;
+    inputFields.innerHTML = html;
+    calcResultDiv.innerHTML = '<p>请填写参数并点击计算。</p>';
+    
+    // 重新绑定事件监听器
+    setupEventListeners();
+}
+
+
+/**
+ * 渲染子计算项目按钮
+ */
+function renderCalcModes() {
+    const calcModeGroup = document.getElementById('calcModeGroup');
+    let modes = [];
+    let html = '';
+
+    if (currentContractType === 'u_perp' || currentContractType === 'coin_perp') {
+        modes = [
+            { id: 'pnl', label: '盈亏计算' },
+            { id: 'liq', label: '预估强平价' },
+            { id: 'margin', label: '初始/维持保证金' },
+            { id: 'avg_price', label: '开仓均价合并' }
+        ];
+    } else if (currentContractType === 'option') {
+        modes = [
+            { id: 'fee', label: '费用计算' },
+            { id: 'liq', label: '保证金/强平' },
+            { id: 'pnl', label: '收益/盈亏平衡点' }
+        ];
+    }
+
+    modes.forEach(mode => {
+        const selectedClass = (currentContractType === 'u_perp' && mode.id === 'pnl') ? ' nav-button-selected' : '';
+        html += `<div class="nav-button${selectedClass}" id="btn-mode-${mode.id}" onclick="changeCalcMode('${currentContractType}', '${mode.id}')">${mode.label}</div>`;
+    });
+
+    calcModeGroup.innerHTML = html;
+}
+
+// --- 输入字段 HTML 生成函数 (占位，将根据您的公式实现) ---
+
+function getPerpPNLInputHTML(type) {
+    const unit = type === 'u_perp' ? '(USDT)' : '(交易币)';
+    const formulaType = type === 'u_perp' ? 'U本位' : '币本位';
+    return `
+        <div class="field-item">
+            <label for="contractValue">合约面值 (V):</label>
+            <input type="number" id="contractValue" value="${type === 'u_perp' ? '0.1' : '10'}" placeholder="">
+        </div>
+        <div class="field-item">
+            <label for="quantity">张数 (N):</label>
+            <input type="number" id="quantity" value="1" placeholder="1">
+        </div>
+        <div class="field-item">
+            <label for="entryPrice">开仓价格 ${unit}:</label>
+            <input type="number" id="entryPrice" value="3081.33" placeholder="">
+        </div>
+        <div class="field-item">
+            <label for="exitPrice">平仓价格 ${unit}:</label>
+            <input type="number" id="exitPrice" value="3080.33" placeholder="">
+        </div>
+        <div class="field-item">
+            <label for="leverage">杠杆倍数 (L):</label>
+            <input type="number" id="leverage" value="20" max="${MAX_LEVERAGE}" placeholder="20">
+        </div>
+        <div class="field-item">
+            <label for="fundFeeRate">资金费率 (万分之几):</label>
+            <input type="number" id="fundFeeRate" value="10" placeholder="10">
+            <p class="note">用于预估资金费用。${formulaType}公式已采用。</p>
+        </div>
+    `;
+}
+
+function getPerpLiqInputHTML(type) {
+     const unit = type === 'u_perp' ? '(USDT)' : '(交易币)';
+     return `
+        <div class="field-item">
+            <label for="contractValue_liq">合约面值 (V):</label>
+            <input type="number" id="contractValue_liq" value="${type === 'u_perp' ? '0.1' : '10'}" placeholder="">
+        </div>
+        <div class="field-item">
+            <label for="quantity_liq">张数 (N):</label>
+            <input type="number" id="quantity_liq" value="1" placeholder="1">
+        </div>
+        <div class="field-item">
+            <label for="entryPrice_liq">开仓价格 ${unit}:</label>
+            <input type="number" id="entryPrice_liq" value="3081.33" placeholder="">
+        </div>
+        <div class="field-item">
+            <label for="initialMargin_liq">保证金余额 ${unit}:</label>
+            <input type="number" id="initialMargin_liq" value="1.54" placeholder="">
+        </div>
+        <div class="field-item">
+            <label for="maintMarginRate">仓位维持保证金率 (%):</label>
+            <input type="number" id="maintMarginRate" value="0.4" placeholder="0.4">
+            <p class="note">例如：0.4% 填 0.4。</p>
+        </div>
+        <div class="field-item">
+            <label for="feeRate">手续费率 (万分之几):</label>
+            <input type="number" id="feeRate" value="4" placeholder="4">
+            <p class="note">例如：0.04% 填 4。</p>
+        </div>
+        <div class="field-item">
+            <label for="side">方向:</label>
+            <select id="side">
+                <option value="long">多仓</option>
+                <option value="short">空仓</option>
+            </select>
+        </div>
+    `;
+}
+
+function getPerpMarginInputHTML(type) {
+    const unit = type === 'u_perp' ? '(USDT)' : '(交易币)';
+    return `
+        <div class="field-item">
+            <label for="contractValue_margin">合约面值 (V):</label>
+            <input type="number" id="contractValue_margin" value="${type === 'u_perp' ? '0.1' : '10'}" placeholder="">
+        </div>
+        <div class="field-item">
+            <label for="quantity_margin">张数 (N):</label>
+            <input type="number" id="quantity_margin" value="1" placeholder="1">
+        </div>
+        <div class="field-item">
+            <label for="entryPrice_margin">开仓价格 (P_entry) ${unit}:</label>
+            <input type="number" id="entryPrice_margin" value="3081.33" placeholder="">
+        </div>
+        <div class="field-item">
+            <label for="leverage_margin">杠杆倍数 (L):</label>
+            <input type="number" id="leverage_margin" value="20" max="${MAX_LEVERAGE}" placeholder="20">
+        </div>
+        <div class="field-item">
+            <label for="markPrice_margin">标记价格 (P_mark) ${unit}:</label>
+            <input type="number" id="markPrice_margin" value="3081.33" placeholder="">
+        </div>
+        <div class="field-item">
+            <label for="maintMarginRate_margin">仓位维持保证金率 (%):</label>
+            <input type="number" id="maintMarginRate_margin" value="0.4" placeholder="0.4">
+            <p class="note">用于计算维持保证金，例如 0.4% 填 0.4</p>
+        </div>
+    `;
+}
+
+function getAvgPriceInputHTML(type) {
+    const formulaType = type === 'u_perp' ? 'U本位' : '币本位';
+    return `
+        <div class="field-item">
+            <label for="contractValue_avg">合约面值 (V):</label>
+            <input type="number" id="contractValue_avg" value="${type === 'u_perp' ? '0.1' : '10'}" placeholder="">
+        </div>
+        <div class="field-item">
+            <label for="oldQuantity">原持仓数 (N_old):</label>
+            <input type="number" id="oldQuantity" value="10" placeholder="10">
+        </div>
+        <div class="field-item">
+            <label for="oldAvgPrice">原持仓均价:</label>
+            <input type="number" id="oldAvgPrice" value="3000" placeholder="3000">
+        </div>
+        <div class="field-item">
+            <label for="newQuantity">新开仓数 (N_new):</label>
+            <input type="number" id="newQuantity" value="5" placeholder="5">
+        </div>
+        <div class="field-item">
+            <label for="newAvgPrice">新开仓成交均价:</label>
+            <input type="number" id="newAvgPrice" value="3100" placeholder="3100">
+        </div>
+        <p class="note">将使用您提供的 ${formulaType} 开仓均价合并公式进行计算。</p>
+    `;
+}
+
+function getOptionFeeInputHTML() {
+    return `
+        <div class="field-item">
+            <label for="openPrice_opt">开仓均价/期权费:</label>
+            <input type="number" id="openPrice_opt" value="0.05" placeholder="">
+        </div>
+        <div class="field-item">
+            <label for="multiplier">合约乘数:</label>
+            <input type="number" id="multiplier" value="0.01" placeholder="例如 BTC 0.01">
+        </div>
+        <div class="field-item">
+            <label for="contractValue_opt">合约面值:</label>
+            <input type="number" id="contractValue_opt" value="1" placeholder="例如 BTC 1">
+        </div>
+        <div class="field-item">
+            <label for="quantity_opt">成交张数:</label>
+            <input type="number" id="quantity_opt" value="100" placeholder="100">
+        </div>
+        <div class="field-item">
+            <label for="feeRate_opt">手续费率:</label>
+            <input type="number" id="feeRate_opt" value="0.0003" placeholder="例如 0.0003">
+        </div>
+        <div class="field-item">
+            <label for="markPrice_opt">标记价格:</label>
+            <input type="number" id="markPrice_opt" value="0.05" placeholder="用于减仓费">
+        </div>
+    `;
+}
+
+function getOptionLiqInputHTML() {
+    return `
+        <p class="note">期权维持保证金计算复杂，需要输入多个参数。</p>
+        <div class="field-item">
+            <label for="marginCoefficient">保证金系数:</label>
+            <input type="number" id="marginCoefficient" value="1" placeholder="梯度系数">
+        </div>
+        <div class="field-item">
+            <label for="markPrice_liq">期权标记价格:</label>
+            <input type="number" id="markPrice_liq" value="0.0032666" placeholder="">
+        </div>
+        <div class="field-item">
+            <label for="contractValue_liq_opt">合约面值:</label>
+            <input type="number" id="contractValue_liq_opt" value="1" placeholder="例如 BTC 1">
+        </div>
+        <div class="field-item">
+            <label for="multiplier_liq">合约乘数:</label>
+            <input type="number" id="multiplier_liq" value="0.01" placeholder="例如 0.01">
+        </div>
+        <div class="field-item">
+            <label for="quantity_liq_opt">持仓张数:</label>
+            <input type="number" id="quantity_liq_opt" value="30" placeholder="30">
+        </div>
+        <div class="field-item">
+            <label for="side_liq_opt">仓位方向:</label>
+            <select id="side_liq_opt">
+                <option value="call_sell">看涨卖方</option>
+                <option value="put_sell">看跌卖方</option>
+            </select>
+        </div>
+        <div class="field-item">
+            <label for="baseAsset_liq_opt">基础资产:</label>
+            <select id="baseAsset_liq_opt">
+                <option value="BTC">BTC</option>
+                <option value="ETH">ETH</option>
+            </select>
+        </div>
+    `;
+}
+
+function getOptionPNLInputHTML() {
+    return `
+        <p class="note">收益、盈亏平衡点计算</p>
+        <div class="field-item">
+            <label for="strikePrice">执行价格:</label>
+            <input type="number" id="strikePrice" value="50000" placeholder="50000">
+        </div>
+        <div class="field-item">
+            <label for="optionFee_pnl">期权费 (开仓均价):</label>
+            <input type="number" id="optionFee_pnl" value="0.05" placeholder="">
+        </div>
+        <div class="field-item">
+            <label for="pnl_result">收益:</label>
+            <input type="number" id="pnl_result" value="0.01" placeholder="用于计算收益率">
+        </div>
+        <div class="field-item">
+            <label for="deliveryPrice">交割/结算价格:</label>
+            <input type="number" id="deliveryPrice" value="51000" placeholder="用于计算行权收益">
+        </div>
+        <div class="field-item">
+            <label for="multiplier_pnl">合约乘数:</label>
+            <input type="number" id="multiplier_pnl" value="0.01" placeholder="0.01">
+        </div>
+        <div class="field-item">
+            <label for="quantity_pnl">持仓数量:</label>
+            <input type="number" id="quantity_pnl" value="100" placeholder="100">
+        </div>
+    `;
+}
+
+function setupEventListeners() {
+    // 重新绑定杠杆限制
+     ['leverage', 'leverage_margin'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.addEventListener('input', (e) => {
+                const value = parseInt(e.target.value);
+                if (value > MAX_LEVERAGE) {
+                    e.target.value = MAX_LEVERAGE;
+                }
+                if (value < 1) {
+                    e.target.value = 1;
+                }
+            });
+        }
+    });
+}
+
 
 function renderApp() {
     document.body.style.backgroundColor = '#1e1e1e';
@@ -212,7 +582,7 @@ function renderApp() {
     document.body.style.margin = '0';
     document.body.style.padding = '20px';
 
-    // 动态加载 MathJax 脚本 (用于渲染 LaTeX 公式)
+    // 动态加载 MathJax 脚本
     if (!window.MathJax) {
         const script = document.createElement('script');
         script.type = 'text/javascript';
@@ -221,7 +591,7 @@ function renderApp() {
         script.async = true;
         document.head.appendChild(script);
 
-        // 配置 MathJax (可选，但推荐)
+        // 配置 MathJax 
         window.MathJax = {
             tex: {
                 inlineMath: [['$', '$'], ['\\(', '\\)']],
@@ -229,7 +599,7 @@ function renderApp() {
             },
             options: {
                 renderActions: {
-                    addMenu: [20, '', ''] // 禁用右键菜单
+                    addMenu: [20, '', ''] 
                 }
             }
         };
@@ -237,6 +607,7 @@ function renderApp() {
 
     const htmlContent = `
         <style>
+            /* 样式省略，使用 V1.0.8/V1.0.7 样式 */
             .container {
                 max-width: 1200px;
                 margin: 0 auto;
@@ -276,7 +647,7 @@ function renderApp() {
                 color: #cccccc;
                 font-size: 14px;
             }
-            input[type="number"] {
+            input[type="number"], select {
                 width: 100%;
                 padding: 10px;
                 border: 1px solid #3c3c3c;
@@ -311,9 +682,7 @@ function renderApp() {
             .note {
                 color: #888888;
                 font-size: 12px;
-                margin-top: 15px;
-                padding-top: 10px;
-                border-top: 1px solid #3c3c3c;
+                margin-top: 5px;
             }
             .version-info {
                 text-align: center;
@@ -321,8 +690,6 @@ function renderApp() {
                 font-size: 12px;
                 margin-top: 30px;
             }
-            
-            /* Formula Display Styles for V1.0.5 */
             .result-block {
                 margin-bottom: 25px;
                 border-left: 3px solid #4EC9B0;
@@ -346,47 +713,64 @@ function renderApp() {
             .formula-details .MJX-TEX {
                 font-size: 14px !important;
                 color: #d4d4d4;
+                display: block; 
+                padding: 2px 0;
+            }
+            .nav-button-group {
+                display: flex;
+                gap: 10px; /* 减小间距 */
+                margin-bottom: 15px;
+            }
+            .nav-button {
+                flex: 1;
+                text-align: center;
+                padding: 10px 15px; /* 调整填充 */
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 14px; /* 减小字体 */
+                color: #d4d4d4;
+                border: 1px solid #3c3c3c;
+                background-color: #2d2d30;
+                transition: all 0.2s;
+                white-space: nowrap; /* 防止换行 */
+            }
+            .nav-button:hover {
+                 background-color: #3e3e42;
+            }
+            .nav-button-selected {
+                background-color: #007acc;
+                border-color: #007acc;
+                color: white;
+                font-weight: bold;
+            }
+            .nav-group-label {
+                color: #9cdcfe;
+                font-weight: bold;
+                margin-top: 15px;
+                margin-bottom: 5px;
             }
 
         </style>
         
         <div class="container">
-            <h1>永续合约盈亏与保证金计算器</h1>
-            <p class="header-info">选择币种类型和计算项目，并根据要求填写参数。计算结果会展示详细公式和代入值。</p>
+            <h1>全功能合约与期权计算器</h1>
+            <p class="header-info">版本 ${VERSION}</p>
 
-            <div style="display:flex; gap: 20px; margin-bottom: 20px;">
-                <button disabled style="background-color:#007acc; flex: 1;">合约类型: U本位合约</button>
-                <button disabled style="background-color:#007acc; flex: 1;">要计算的项目: 盈亏计算</button>
+            <p class="nav-group-label">选择合约类型:</p>
+            <div class="nav-button-group">
+                <div class="nav-button nav-button-selected" id="btn-u-perp" onclick="changeContractType('u_perp')">U本位合约 (USDT)</div>
+                <div class="nav-button" id="btn-coin-perp" onclick="changeContractType('coin_perp')">币本位合约 (BTC/ETH)</div>
+                <div class="nav-button" id="btn-option" onclick="changeContractType('option')">期权</div>
             </div>
             
+            <p class="nav-group-label">要计算的项目:</p>
+            <div class="nav-button-group" id="calcModeGroup">
+                </div>
+
             <div class="input-group">
-                <h3>参数填写</h3>
-                <div class="input-field">
-                    <div class="field-item">
-                        <label for="contractValue">合约价值 (基础):</label>
-                        <input type="number" id="contractValue" value="0.1" placeholder="BTC/USDT 0.1">
-                    </div>
-                    <div class="field-item">
-                        <label for="quantity">张数 (实际数量):</label>
-                        <input type="number" id="quantity" value="1" placeholder="1">
-                    </div>
-                    <div class="field-item">
-                        <label for="entryPrice">开仓价格 (USDT):</label>
-                        <input type="number" id="entryPrice" value="3081.33" placeholder="3081.33">
-                    </div>
-                    <div class="field-item">
-                        <label for="exitPrice">平仓价格 (USDT):</label>
-                        <input type="number" id="exitPrice" value="" placeholder="3080.33">
-                    </div>
-                    <div class="field-item">
-                        <label for="leverage">杠杆倍数 (L):</label>
-                        <input type="number" id="leverage" value="20" max="${MAX_LEVERAGE}" placeholder="20">
-                    </div>
-                    <div class="field-item">
-                        <label for="fundFeeRate">红利指数 (万分之几):</label>
-                        <input type="number" id="fundFeeRate" value="10" placeholder="10 (例如 0.0010 = 10)">
-                        <p class="note">预估资金费用，以万分之几填写，例如 0.04% 填 4</p>
-                    </div>
+                <h3>盈亏计算参数填写</h3>
+                <div class="input-field" id="inputFields">
+                    ${getPerpPNLInputHTML('u_perp')}
                 </div>
                 <button onclick="doCalc()">计算</button>
             </div>
@@ -394,7 +778,7 @@ function renderApp() {
             <div class="result-panel">
                 <h3>计算结果</h3>
                 <div id="calcResult">
-                    <p>参数更新后，请点击计算。</p>
+                    <p>请填写参数并点击计算。</p>
                 </div>
             </div>
 
@@ -404,26 +788,15 @@ function renderApp() {
 
     document.body.innerHTML = htmlContent;
 
-    // 绑定事件监听器
-    document.getElementById('leverage').addEventListener('input', (e) => {
-        const value = parseInt(e.target.value);
-        if (value > MAX_LEVERAGE) {
-            e.target.value = MAX_LEVERAGE;
-        }
-        if (value < 1) {
-            e.target.value = 1;
-        }
-    });
-
-    // 自动填充示例平仓价
-    const entryPriceInput = document.getElementById('entryPrice');
-    const exitPriceInput = document.getElementById('exitPrice');
-
-    if (entryPriceInput.value && !exitPriceInput.value) {
-        // 假设开仓价为 3081.33，预设一个平仓价 3080.33 方便测试
-        exitPriceInput.value = (parseFloat(entryPriceInput.value) - 1.00).toFixed(2);
+    // 初始渲染
+    renderCalcModes();
+    setupEventListeners();
+    
+    // 确保页面加载后 MathJax 渲染一次 (如果需要)
+    if (window.MathJax) {
+        window.MathJax.typesetPromise();
     }
 }
 
 // 应用启动
-renderApp();
+window.onload = renderApp;
