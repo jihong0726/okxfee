@@ -547,7 +547,7 @@
                 missing.push(FIELD_LABELS[id] || id);
             }
         });
-        return missing.gfilter(Boolean); // 过滤掉 getVal返回null的情况，仅保留真正缺失的参数名称
+        return missing.filter(Boolean); // 过滤掉 getVal返回null的情况，仅保留真正缺失的参数名称
     }
 
 
