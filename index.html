@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>合约与期权全能计算器 V3.1</title>
+    <title>合约与期权全能计算器 V3.2</title>
     
     <script type="text/javascript" id="MathJax-script" async
         src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
@@ -28,12 +28,16 @@
         .formula-section { margin-top: 30px; padding: 15px; background-color: #e9ecef; border-radius: 8px; font-size: 14px; }
         .hidden { display: none; }
         .note { color: #888; margin-top: 5px; font-size: 0.9em; }
+        
+        /* 新增：内容选择样式 */
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+        .checkbox-group label { font-weight: normal; color: #555; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🧠 交易计算公式综合验证器 V3.1</h1>
+    <h1>🧠 交易计算公式综合验证器 V3.2</h1>
     
     <div class="config-row">
         <div class="input-group" style="flex: 2;">
@@ -60,6 +64,18 @@
         </div>
     </div>
     
+    <div class="input-group" id="calculationSelection" style="border-bottom: 1px dashed #e9ecef; padding-bottom: 15px; margin-bottom: 25px;">
+        <label>🎯 计算内容选择</label>
+        <div class="checkbox-group">
+            <input type="checkbox" id="calc_avg" value="avg" checked><label for="calc_avg">平均开仓价</label>
+            <input type="checkbox" id="calc_pnl" value="pnl" checked><label for="calc_pnl">未实现盈亏</label>
+            <input type="checkbox" id="calc_liq" value="liq" checked><label for="calc_liq">预估强平价</label>
+            <input type="checkbox" id="calc_immm" value="immm" checked><label for="calc_immm">初始/维持保证金</label>
+            <input type="checkbox" id="calc_value" value="value" checked><label for="calc_value">仓位价值/资金费</label>
+        </div>
+    </div>
+
+    
     <div id="contractInputs">
         <div class="input-grid">
             <div class="input-group">
@@ -68,7 +84,7 @@
                 <p class="note" id="faceValueNote">币本位示例: 100 (张)/合约</p>
             </div>
             <div class="input-group">
-                <label for="entryPrice">开仓均价 (P_entry)</label>
+                <label for="entryPrice">当前开仓均价 (P_entry)</label>
                 <input type="number" id="entryPrice" value="30000">
             </div>
             <div class="input-group">
@@ -141,7 +157,7 @@
     <div id="results">
         <h2>✅ 计算结果</h2>
         <div id="resultContent">
-            请选择模式并点击计算。
+            请选择模式和计算内容并点击计算。
         </div>
     </div>
 
@@ -149,20 +165,15 @@
         <h3 style="color: #007bff;">当前模式的关键公式 ($LaTeX$)</h3>
         <div id="formulaDisplay">
             </div>
-        <p style="margin-top: 15px; font-style: italic; color: #6c757d;">版本 V3.1.0 - 优化强平价及公式渲染</p>
+        <p style="margin-top: 15px; font-style: italic; color: #6c757d;">版本 V3.2.0 - 新增内容选择功能</p>
     </div>
 </div>
 
 <script>
-    // --- 核心公式实现 ---
+    // --- 核心公式实现 (沿用 V3.1) ---
 
-    /**
-     * U本位开仓均价 (U-M Average Entry Price)
-     * 公式: ( M*O*P_old + M*N*P_new ) / ( M*(O+N) )
-     * @param {number} M 合约面值, O 原张数, P_old 原价, N 新张数, P_new 新价
-     */
     function calculateUsdtAvgEntry(M, O, P_old, N, P_new) {
-        if (O + N === 0) return P_old; // 无新增
+        if (O + N === 0) return P_old; 
         const P_old_calc = (O > 0 && P_old > 0) ? P_old : P_new;
         const S_total = O + N;
         const P_new_calc = (P_new === 0) ? P_old_calc : P_new;
@@ -172,13 +183,8 @@
         return numerator / denominator;
     }
 
-    /**
-     * 币本位开仓均价 (Coin-M Average Entry Price)
-     * 公式: ( M*(O+N) ) / ( M*O/P_old + M*N/P_new )
-     * @param {number} M 合约面值, O 原张数, P_old 原价, N 新张数, P_new 新价
-     */
     function calculateCoinAvgEntry(M, O, P_old, N, P_new) {
-        if (O + N === 0) return P_old; // 无新增
+        if (O + N === 0) return P_old;
         const P_old_calc = (O > 0 && P_old > 0) ? P_old : P_new;
         const P_new_calc = (P_new === 0) ? P_old_calc : P_new;
         
@@ -188,72 +194,46 @@
         return numerator / denominator;
     }
     
-    /**
-     * 合约收益 (Profit/Loss) - 假设平仓价为标记价格 (P_mark)
-     */
     function calculateContractProfit(mode, M, S, P_entry, P_mark, direction) {
         if (mode === 'usdt_m') {
             const diff = direction === 'long' ? (P_mark - P_entry) : (P_entry - P_mark);
             return M * S * diff;
         } else if (mode === 'coin_m') {
-            // 币本位：收益 = M*S * (1/P_entry - 1/P_mark) (以交易币计价)
             const factor = direction === 'long' ? (1 / P_mark - 1 / P_entry) : (1 / P_entry - 1 / P_mark);
             return M * S * factor; 
         }
         return 0;
     }
 
-    /**
-     * 初始保证金 (Initial Margin)
-     * 公式: (M * S * P_entry) / L (U本位) 或 (M*S) / (P_entry * L) (币本位)
-     */
     function calculateInitialMargin(mode, M, S, P_entry, L) {
         if (L === 0 || P_entry === 0) return 0;
         if (mode === 'usdt_m') {
-            return (M * P_entry * S) / L; // USDT
+            return (M * P_entry * S) / L;
         } else if (mode === 'coin_m') {
-            return (M * S) / (P_entry * L); // 标的币
+            return (M * S) / (P_entry * L);
         }
         return 0;
     }
     
-    /**
-     * 维持保证金 (Maintenance Margin Required)
-     * 公式: M * |S| * MMR * P_mark (U本位) 或 M*|S|*MMR / P_mark (币本位)
-     */
     function calculateMaintenanceMargin(mode, M, S, MMR, P_mark) {
         const absS = Math.abs(S);
         const mmr = MMR / 100;
         if (mode === 'usdt_m') {
-            return M * absS * mmr * P_mark; // USDT
+            return M * absS * mmr * P_mark;
         } else if (mode === 'coin_m') {
             if (P_mark === 0) return 0;
-            return (M * absS * mmr) / P_mark; // 标的币
+            return (M * absS * mmr) / P_mark;
         }
         return 0;
     }
 
-    /**
-     * 预估强平价 (Estimated Liquidation Price) - 优化后的全仓公式
-     * 假设全仓模式，简化交易费率为单边 FeeRate，不计资金费。
-     * @param {number} mode 合约类型
-     * @param {string} direction 仓位方向
-     * @param {number} M 合约面值
-     * @param {number} S 张数
-     * @param {number} P_entry 开仓价
-     * @param {number} MMR 维持保证金率 (%)
-     * @param {number} FeeRate 手续费率 (%)
-     * @param {number} MarginBalance 保证金余额 (USDT/币)
-     */
     function calculateLiquidationPrice(mode, direction, M, S, P_entry, MMR, FeeRate, MarginBalance) {
-        const fee = FeeRate / 100; // 假设开平双边手续费
+        const fee = FeeRate / 100;
         const mmr = MMR / 100;
         const S_M = M * S;
 
         if (mode === 'usdt_m') {
-            // U本位 (全仓/Cross)
             if (direction === 'long') {
-                // P_liq_long = (MarginBalance - S*M*P_entry*(FeeRate/100*2) + S*M*P_entry*(1-MMR)) / (S*M*(1-MMR))
                 const numerator = (S_M * P_entry) - (MarginBalance + (S_M * P_entry * fee));
                 const denominator = S_M * (1 + mmr);
                 return P_entry - (numerator / denominator);
@@ -265,17 +245,14 @@
         }
         
         else if (mode === 'coin_m') {
-            // 币本位 (全仓/Cross)
             if (direction === 'long') {
-                // P_liq_long = S*M * (1+MMR+Fee) / ( (S*M/P_entry) + MarginBalance )
                 const numerator = S_M * (1 + mmr + fee);
                 const denominator = (S_M / P_entry) + MarginBalance;
                 return numerator / denominator;
             } else { // short
-                // P_liq_short = S*M * (1-MMR-Fee) / ( (S*M/P_entry) - MarginBalance )
                 const numerator = S_M * (1 - mmr - fee);
                 const denominator = (S_M / P_entry) - MarginBalance;
-                if (denominator <= 0) return Infinity; // 无法强平
+                if (denominator <= 0) return Infinity;
                 return numerator / denominator;
             }
         }
@@ -283,16 +260,10 @@
     }
 
 
-    /**
-     * 期权盈亏平衡点 (Break-Even Point)
-     */
     function calculateOptionBreakEven(direction, StrikePrice, Premium) {
-        // 简化处理：假设 Premium 是以价格形式输入
         if (direction === 'long') {
-            // 买入：K + P
             return StrikePrice + Premium; 
         } else {
-            // 卖出：K - P
             return StrikePrice - Premium;
         }
     }
@@ -304,19 +275,19 @@
         const mode = document.getElementById('mode').value;
         const contractInputs = document.getElementById('contractInputs');
         const optionInputs = document.getElementById('optionInputs');
+        const calculationSelection = document.getElementById('calculationSelection');
         const faceValueNote = document.getElementById('faceValueNote');
         const balanceNote = document.getElementById('balanceNote');
-        const reentryInputs = document.querySelectorAll('.input-grid > div:nth-child(7), .input-grid > div:nth-child(8), .input-grid > div:nth-child(9)');
 
-        // 切换主输入区可见性
+        // 切换主输入区和计算内容选择的可见性
         if (mode === 'option') {
             contractInputs.classList.add('hidden');
             optionInputs.classList.remove('hidden');
-            reentryInputs.forEach(el => el.classList.add('hidden'));
+            calculationSelection.classList.add('hidden'); // 期权模式不使用此选择器
         } else {
             contractInputs.classList.remove('hidden');
             optionInputs.classList.add('hidden');
-            reentryInputs.forEach(el => el.classList.remove('hidden'));
+            calculationSelection.classList.remove('hidden'); 
         }
         
         // 动态更新提示
@@ -336,8 +307,10 @@
     function calculateAll() {
         const mode = document.getElementById('mode').value;
         const direction = document.getElementById('direction').value;
-        const marginMode = document.getElementById('marginMode').value;
         
+        // 获取选中的计算内容
+        const selectedCalculations = Array.from(document.querySelectorAll('#calculationSelection input:checked')).map(cb => cb.value);
+
         // 通用输入
         const M = parseFloat(document.getElementById('contractFaceValue').value);
         const P_entry_old = parseFloat(document.getElementById('entryPrice').value);
@@ -352,12 +325,7 @@
         // 补仓输入
         const S_new = parseFloat(document.getElementById('newPositionSize').value) || 0;
         const P_entry_new = parseFloat(document.getElementById('newEntryPrice').value) || 0;
-        const P_old = parseFloat(document.getElementById('oldEntryPrice').value) || P_entry_old; // 原开仓价
-
-        // 期权输入
-        const StrikePrice = parseFloat(document.getElementById('strikePrice').value);
-        const OptionPremium = parseFloat(document.getElementById('optionPremium').value);
-        const Multiplier = parseFloat(document.getElementById('optionMultiplier').value);
+        const P_old = parseFloat(document.getElementById('oldEntryPrice').value) || P_entry_old;
 
         if (isNaN(M) || isNaN(P_entry_old) || isNaN(S_old) || isNaN(P_mark)) {
             document.getElementById('resultContent').innerHTML = "<p style='color:red;'>请输入有效的基本数据!</p>";
@@ -369,57 +337,52 @@
         let formulasHTML = '';
 
         if (mode === 'usdt_m' || mode === 'coin_m') {
-            // --- 合约模式计算 ---
-            
-            // 1. 开仓均价 (若有新增/合并)
-            const P_avg = mode === 'usdt_m' 
-                ? calculateUsdtAvgEntry(M, S_old, P_old, S_new, P_entry_new) 
-                : calculateCoinAvgEntry(M, S_old, P_old, S_new, P_entry_new);
-            
-            // 使用原开仓均价和当前张数计算初始保证金、盈亏、强平价等 (简化，实际应使用 P_avg)
+            // --- 合约模式计算及结果收集 ---
             const S_total = S_old + S_new;
-            const P_used = (S_new > 0) ? P_avg : P_entry_old; // 除非新增，否则用旧价
+            const P_used = (S_new > 0) ? (mode === 'usdt_m' ? calculateUsdtAvgEntry(M, S_old, P_old, S_new, P_entry_new) : calculateCoinAvgEntry(M, S_old, P_old, S_new, P_entry_new)) : P_entry_old;
             
-            // 2. 初始保证金 (IM)
+            const P_avg = mode === 'usdt_m' ? calculateUsdtAvgEntry(M, S_old, P_old, S_new, P_entry_new) : calculateCoinAvgEntry(M, S_old, P_old, S_new, P_entry_new);
             const I_Margin = calculateInitialMargin(mode, M, S_total, P_used, L);
-            
-            // 3. 维持保证金 (MM)
             const M_Margin = calculateMaintenanceMargin(mode, M, S_total, MMR, P_mark);
-            
-            // 4. 合约收益 (PnL)
             const PnL = calculateContractProfit(mode, M, S_total, P_used, P_mark, direction);
-
-            // 5. 仓位价值 (V)
             const V_position = mode === 'usdt_m' ? (M * S_total * P_mark) : (M * S_total / P_mark);
-            
-            // 6. 预估资金费用 (FF)
             const F_cost = V_position * (FundingRate / 100); 
-
-            // 7. 预估强平价 (P_liq) - 强平价计算复杂，这里基于全仓简化公式
             const P_liq = calculateLiquidationPrice(mode, direction, M, S_total, P_used, MMR, FeeRate, MarginBalance);
 
-            // 8. 保证金率 (全仓)
             const Equity = MarginBalance + PnL;
             const MarginRatio = (Equity / V_position) * 100;
 
-            
             const currency = mode === 'usdt_m' ? 'USDT' : '标的币';
             const priceUnit = ' $/币';
             const PnL_text = mode === 'coin_m' ? `${PnL.toFixed(6)} ${currency} ≈ ${(PnL * P_mark).toFixed(2)} USDT` : `${PnL.toFixed(2)} ${currency}`;
             const V_text = mode === 'coin_m' ? `${V_position.toFixed(6)} ${currency} ≈ ${(V_position * P_mark).toFixed(2)} USDT` : `${V_position.toFixed(2)} ${currency}`;
-            
-            resultsHTML += `
-                <div class="result-box"><span class="result-label">平均开仓价 (P_avg):</span> <span class="result-value">${P_avg.toFixed(4)} ${priceUnit}</span></div>
-                <div class="result-box"><span class="result-label">未实现盈亏 (PnL):</span> <span class="result-value" style="color:${PnL >= 0 ? 'green' : 'red'};">${PnL_text}</span></div>
-                <div class="result-box"><span class="result-label">初始保证金 (IM):</span> <span class="result-value">${I_Margin.toFixed(4)} ${currency}</span></div>
-                <div class="result-box"><span class="result-label">维持保证金 (MM):</span> <span class="result-value">${M_Margin.toFixed(4)} ${currency}</span></div>
-                <div class="result-box"><span class="result-label">当前保证金率 (全仓):</span> <span class="result-value" style="color:${MarginRatio > MMR ? 'green' : 'orange'};">${MarginRatio.toFixed(2)}%</span></div>
-                <div class="result-box"><span class="result-label">预估强平价 (P_liq):</span> <span class="result-value" style="color:#dc3545;">${P_liq.toFixed(4)} ${priceUnit}</span></div>
-                <div class="result-box"><span class="result-label">仓位价值 (V):</span> <span class="result-value">${V_text}</span></div>
-                <div class="result-box"><span class="result-label">预估资金费用 (FF):</span> <span class="result-value">${F_cost.toFixed(4)} ${currency}</span></div>
-            `;
-            
-            // 公式展示
+
+            // 1. 根据选择动态添加结果
+            if (selectedCalculations.includes('avg')) {
+                 resultsHTML += `<div class="result-box"><span class="result-label">平均开仓价 (P_avg):</span> <span class="result-value">${P_avg.toFixed(4)} ${priceUnit}</span></div>`;
+            }
+            if (selectedCalculations.includes('pnl')) {
+                resultsHTML += `<div class="result-box"><span class="result-label">未实现盈亏 (PnL):</span> <span class="result-value" style="color:${PnL >= 0 ? 'green' : 'red'};">${PnL_text}</span></div>`;
+            }
+            if (selectedCalculations.includes('immm')) {
+                resultsHTML += `
+                    <div class="result-box"><span class="result-label">初始保证金 (IM):</span> <span class="result-value">${I_Margin.toFixed(4)} ${currency}</span></div>
+                    <div class="result-box"><span class="result-label">维持保证金 (MM):</span> <span class="result-value">${M_Margin.toFixed(4)} ${currency}</span></div>
+                    <div class="result-box"><span class="result-label">当前保证金率 (全仓):</span> <span class="result-value" style="color:${MarginRatio > MMR ? 'green' : 'orange'};">${MarginRatio.toFixed(2)}%</span></div>
+                `;
+            }
+            if (selectedCalculations.includes('liq')) {
+                resultsHTML += `<div class="result-box"><span class="result-label">预估强平价 (P_liq):</span> <span class="result-value" style="color:#dc3545;">${P_liq.toFixed(4)} ${priceUnit}</span></div>`;
+            }
+            if (selectedCalculations.includes('value')) {
+                resultsHTML += `
+                    <div class="result-box"><span class="result-label">仓位价值 (V):</span> <span class="result-value">${V_text}</span></div>
+                    <div class="result-box"><span class="result-label">预估资金费用 (FF):</span> <span class="result-value">${F_cost.toFixed(4)} ${currency}</span></div>
+                `;
+            }
+
+
+            // 2. 公式展示 (始终显示所有相关公式)
             if (mode === 'usdt_m') {
                 formulasHTML += `
                     $$ P_{\\text{avg}} = \\frac{M \\cdot O \\cdot P_{\\text{old}} + M \\cdot N \\cdot P_{\\text{new}}}{M \\cdot (O + N)} $$
@@ -435,17 +398,14 @@
                     $$ P_{\\text{liq\\_long}} = \\frac{M \\cdot S \\cdot (1 + MMR + \\text{Fee})}{\\frac{M \\cdot S}{P_{\\text{entry}}} + \\text{MarginBalance}} $$
                 `;
             }
+            if (resultsHTML === '') {
+                 resultsHTML = '<p style="color:orange;">请勾选您想要计算和显示的内容。</p>';
+            }
 
         } else if (mode === 'option') {
-            // --- 期权模式计算 ---
-            
-            // 1. 总期权费 (P_entry_old 视为 期权费率，S_old 视为张数)
+            // --- 期权模式计算 (无选择器，全显示) ---
             const TotalPremium = OptionPremium * Multiplier * S_old; 
-            
-            // 2. 盈亏平衡点 (BEP)
             const BEP = calculateOptionBreakEven(direction, StrikePrice, OptionPremium);
-            
-            // 3. 期权名义市值 (V)
             const OptionValue = StrikePrice * Multiplier * S_old; 
             
             resultsHTML += `
@@ -456,7 +416,6 @@
                 <div class="result-box"><span class="result-label">期权费/张 (P):</span> <span class="result-value">${OptionPremium.toFixed(4)} $</span></div>
             `;
             
-            // 公式展示
             formulasHTML += `
                 $$ \\text{总期权费} = P \\cdot \\text{乘数} \\cdot \\text{张数} $$
                 $$ P_{\\text{BEP\_买入}} = K + P $$
@@ -477,6 +436,8 @@
     document.addEventListener('DOMContentLoaded', () => {
         toggleInputs(); 
         calculateAll();
+        // 绑定计算内容选择的 change 事件
+        document.getElementById('calculationSelection').addEventListener('change', calculateAll);
     });
 </script>
 
