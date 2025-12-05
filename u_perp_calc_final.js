@@ -1,5 +1,5 @@
 // u_perp_calc_final.js
-// 合约计算器 (U本位/币本位 - 最终修复计算错误，优化参数收集健壮性)
+// 合约计算器 (U本位/币本位 - 最终加固参数收集健壮性，解决 TypeError)
 
 (function () {
     // ========== 样式 (保持上次的优化颜色搭配) ==========
@@ -425,7 +425,6 @@
     function initDOMElements() {
         const allIds = ["contractType", "calcItem", "side", "faceValue", "contracts", "openPx", "closePx", "leverage", "makerFee", "takerFee", "openRole", "closeRole", "liqFeeRate", "markPx", "fundingRate", "mmRate", "marginBalance", "effectiveMargin", "reduceFee", "origQty", "origPrice", "newQty", "newPrice", "btnCalc", "result", "hintText"];
         allIds.forEach(id => {
-            // 确保 $D 对象中存储了 DOM 引用，如果不存在则为 null
             $D[id] = $(id); 
         });
     }
@@ -435,26 +434,25 @@
 
     /** 
      * 从输入框或选择框获取值，并处理为数字或字符串。
-     * 优化：如果元素不存在，则返回 null。
+     * ！！！加固：如果 $D[id] 不存在，返回 null。
      */
     function getVal(id) {
         const el = $D[id];
-        if (!el) return null; // 如果元素不存在，立即返回 null
+        // 关键加固点：确保 el 是一个有效的对象
+        if (!el || el.value === undefined) return null; 
         
         let v = el.value.trim();
-        if (el.tagName === "INPUT" || el.classList.contains("param")) {
-            return v; // 对于 select 和 string inputs，返回字符串
-        }
         return v;
     }
 
     /** 
      * 从输入框获取数字，处理逗号和空值。
-     * 优化：如果元素不存在，则返回 null。
+     * ！！！加固：如果 $D[id] 不存在，返回 null。
      */
     function getNum(id) {
         const el = $D[id];
-        if (!el) return null; // 如果元素不存在，立即返回 null
+        // 关键加固点：确保 el 是一个有效的对象
+        if (!el || el.value === undefined) return null; 
         
         let v = el.value.trim();
         if (!v) return null;
@@ -498,7 +496,6 @@
     // ========== 界面交互逻辑 ==========
 
     function refreshVisibleFields() {
-        // ... (保持不变)
         const cType = $D.contractType.value;
         const item = $D.calcItem.value;
         const requiredFields = (REQUIRED[cType] && REQUIRED[cType][item]) || [];
@@ -539,27 +536,25 @@
     }
 
     function checkRequired(contractType, item) {
-        // ... (保持不变)
         const req = (REQUIRED[contractType] && REQUIRED[contractType][item]) || [];
         const missing = [];
         req.forEach(id => {
             const el = $D[id];
-            if (!el) return;
-            if (el.tagName === "INPUT" || el.tagName === "SELECT") {
-                const v = el.value.trim();
-                if (!v) missing.push(FIELD_LABELS[id] || id);
+            // 关键加固点：使用 getVal 来统一检查，避免直接访问 el.value
+            const v = getVal(id); 
+
+            if (v === null || v === "") { // 如果 getVal 返回 null (DOM 不存在) 或空字符串 (未填写)
+                missing.push(FIELD_LABELS[id] || id);
             }
         });
-        return missing;
+        return missing.gfilter(Boolean); // 过滤掉 getVal返回null的情况，仅保留真正缺失的参数名称
     }
 
 
     // ========== 核心计算函数 (calcU, calcCoin) 保持不变 ==========
-    // ...
 
     function calcU(item, P) {
         const { side, face, ctt, open, close, lev, feeOpenRate, feeCloseRate, mark, fundPct, mmRate, liqRate, mb, effMargin, reduceFee, origQty, origPrice, newQty, newPrice } = P;
-        // ... (内部逻辑保持不变)
         const Unit = "USDT";
         let html = "";
         const P_C = face * ctt; 
@@ -680,7 +675,6 @@
 
     function calcCoin(item, P) {
         const { side, face, ctt, open, close, lev, feeOpenRate, feeCloseRate, mark, fundPct, mmRate, liqRate, mb, effMargin, reduceFee, origQty, origPrice, newQty, newPrice } = P;
-        // ... (内部逻辑保持不变)
         const Unit = "币"; 
         let html = "";
         const P_C = face * ctt; 
@@ -789,7 +783,7 @@
                 html += `<div class="sub-title">资金费用 (${Unit})</div>`;
                 const fundingFee = posValue != null && fundPct != null ? posValue * pct(fundPct) : null;
                 html += row("仓位价值", posValue, 8, Unit);
-                html += rowBig("资金费用", fundingFee, 8);
+                html += rowBig("资金费用（仓位价值×资金费率）", fundingFee, 8);
                 break;
             case "预估强平价":
                 html += `<div class="sub-title">预估强平价格</div>`;
@@ -802,6 +796,7 @@
 
         return html;
     }
+
 
     // ========== 主计算逻辑 ==========
 
@@ -827,7 +822,7 @@
         hintEl.classList.remove('hint-error');
 
 
-        // 收集所有参数（使用更健壮的 getNum 和 getVal）
+        // 收集所有参数（使用加固后的 getNum 和 getVal）
         const params = {
             side: getVal("side"),
             face: getNum("faceValue"),
@@ -852,22 +847,19 @@
             newPrice: getNum("newPrice")
         };
         
-        // 费率转换 (使用 || "taker" 作为默认值，防止 select 元素不存在时，逻辑中断)
+        // 费率转换 (如果 select 元素被隐藏或不存在，使用 "taker" 作为默认值)
         const openRole = params.openRole || "taker"; 
         const closeRole = params.closeRole || "taker"; 
 
         params.maker = pct(params.makerPct || 0);
         params.taker = pct(params.takerPct || 0);
         
-        // 修正：使用更健壮的 openRole/closeRole
         params.feeOpenRate = openRole === "maker" ? params.maker : params.taker;
         params.feeCloseRate = closeRole === "maker" ? params.maker : params.taker; 
 
 
         let html = "";
         if (cType === "U本位合约") {
-            // FIX: 在计算开仓保证金（初始）时，由于 side 不存在，导致 pnl 无法计算，但 pnl 不用于 IM，所以没关系。
-            // 核心计算逻辑是健壮的。
             html = calcU(item, params);
         } else if (cType === "币本位合约") {
             html = calcCoin(item, params);
