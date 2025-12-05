@@ -1,8 +1,8 @@
 // u_perp_calc_final.js
-// 合约计算器 (U本位/币本位 - 最终加固参数收集健壮性，解决 TypeError)
+// 永续合约盈亏与保证金计算器 (最终加固，解决 TypeError，优化标题)
 
 (function () {
-    // ========== 样式 (保持上次的优化颜色搭配) ==========
+    // ========== 样式 (保持不变) ==========
     const style = document.createElement("style");
     style.textContent = `
     *{box-sizing:border-box;}
@@ -196,11 +196,11 @@
     `;
     document.head.appendChild(style);
 
-    // ========== 页面骨架 (保持不变) ==========
+    // ========== 页面骨架 (修改标题) ==========
     document.body.innerHTML = `
     <div class="wrap">
-      <h1>合约计算器（修正公式版）</h1>
-      <div class="subtitle">先选择合约类型，再选择要计算的项目，系统会根据 Excel 公式自动给出需要填写的参数。</div>
+      <h1>永续合约盈亏与保证金计算器</h1>
+      <div class="subtitle">先选择合约类型，再选择要计算的项目，系统会自动给出需要填写的参数。</div>
 
       <div class="top-row">
         <div>
@@ -361,7 +361,7 @@
     </div>
     `;
 
-    // ========== 常量和 DOM 引用 ==========
+    // ========== 常量和 DOM 引用 (保持不变) ==========
     const $ = id => document.getElementById(id);
     const $D = {}; // DOM Elements
 
@@ -430,15 +430,13 @@
     }
 
 
-    // ========== 工具函数 ==========
+    // ========== 工具函数 (保持加固后的逻辑) ==========
 
     /** 
      * 从输入框或选择框获取值，并处理为数字或字符串。
-     * ！！！加固：如果 $D[id] 不存在，返回 null。
      */
     function getVal(id) {
         const el = $D[id];
-        // 关键加固点：确保 el 是一个有效的对象
         if (!el || el.value === undefined) return null; 
         
         let v = el.value.trim();
@@ -447,11 +445,9 @@
 
     /** 
      * 从输入框获取数字，处理逗号和空值。
-     * ！！！加固：如果 $D[id] 不存在，返回 null。
      */
     function getNum(id) {
         const el = $D[id];
-        // 关键加固点：确保 el 是一个有效的对象
         if (!el || el.value === undefined) return null; 
         
         let v = el.value.trim();
@@ -493,7 +489,7 @@
     }
 
 
-    // ========== 界面交互逻辑 ==========
+    // ========== 界面交互逻辑 (保持不变) ==========
 
     function refreshVisibleFields() {
         const cType = $D.contractType.value;
@@ -539,19 +535,20 @@
         const req = (REQUIRED[contractType] && REQUIRED[contractType][item]) || [];
         const missing = [];
         req.forEach(id => {
-            const el = $D[id];
-            // 关键加固点：使用 getVal 来统一检查，避免直接访问 el.value
+            // 使用 getVal 来统一检查，避免直接访问 el.value
             const v = getVal(id); 
 
             if (v === null || v === "") { // 如果 getVal 返回 null (DOM 不存在) 或空字符串 (未填写)
                 missing.push(FIELD_LABELS[id] || id);
             }
         });
-        return missing.filter(Boolean); // 过滤掉 getVal返回null的情况，仅保留真正缺失的参数名称
+        
+        // 🚨 核心修复：将 gfilter 改为 filter
+        return missing.filter(Boolean); 
     }
 
 
-    // ========== 核心计算函数 (calcU, calcCoin) 保持不变 ==========
+    // ========== 核心计算函数 (calcU, calcCoin) 保持不变) ==========
 
     function calcU(item, P) {
         const { side, face, ctt, open, close, lev, feeOpenRate, feeCloseRate, mark, fundPct, mmRate, liqRate, mb, effMargin, reduceFee, origQty, origPrice, newQty, newPrice } = P;
