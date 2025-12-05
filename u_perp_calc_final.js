@@ -1,8 +1,11 @@
 // u_perp_calc_final.js
-// 永续合约盈亏与保证金计算器 (最终加固，解决 TypeError，优化标题)
+// V1.0.4：版本号添加，标题优化，解决 TypeError: missing.gfilter is not a function
 
 (function () {
-    // ========== 样式 (保持不变) ==========
+    // ========== 常量：版本号 ==========
+    const VERSION = "V1.0.4";
+
+    // ========== 样式 (添加版本号样式) ==========
     const style = document.createElement("style");
     style.textContent = `
     *{box-sizing:border-box;}
@@ -190,13 +193,22 @@
         color: #FF5252 !important;
     }
 
+    .version-info {
+        text-align: right;
+        font-size: 11px;
+        color: #555;
+        padding: 10px 0 20px;
+        margin-top: 20px;
+        border-top: 1px solid #1a1a1a;
+    }
+
     @media(max-width:900px){
       .row-2col{grid-template-columns:1fr;}
     }
     `;
     document.head.appendChild(style);
 
-    // ========== 页面骨架 (修改标题) ==========
+    // ========== 页面骨架 (修改标题和添加版本号) ==========
     document.body.innerHTML = `
     <div class="wrap">
       <h1>永续合约盈亏与保证金计算器</h1>
@@ -358,12 +370,14 @@
           <div id="result">参数更新后，请点击计算。</div>
         </div>
       </div>
+      
+      <div class="version-info">版本号：${VERSION}</div>
     </div>
     `;
 
     // ========== 常量和 DOM 引用 (保持不变) ==========
     const $ = id => document.getElementById(id);
-    const $D = {}; // DOM Elements
+    const $D = {}; 
 
     const FIELD_LABELS = {
         side: "方向",
@@ -430,11 +444,8 @@
     }
 
 
-    // ========== 工具函数 (保持加固后的逻辑) ==========
+    // ========== 工具函数 (核心计算逻辑不变) ==========
 
-    /** 
-     * 从输入框或选择框获取值，并处理为数字或字符串。
-     */
     function getVal(id) {
         const el = $D[id];
         if (!el || el.value === undefined) return null; 
@@ -443,9 +454,6 @@
         return v;
     }
 
-    /** 
-     * 从输入框获取数字，处理逗号和空值。
-     */
     function getNum(id) {
         const el = $D[id];
         if (!el || el.value === undefined) return null; 
@@ -535,15 +543,14 @@
         const req = (REQUIRED[contractType] && REQUIRED[contractType][item]) || [];
         const missing = [];
         req.forEach(id => {
-            // 使用 getVal 来统一检查，避免直接访问 el.value
             const v = getVal(id); 
 
-            if (v === null || v === "") { // 如果 getVal 返回 null (DOM 不存在) 或空字符串 (未填写)
+            if (v === null || v === "") { 
                 missing.push(FIELD_LABELS[id] || id);
             }
         });
         
-        // 🚨 核心修复：将 gfilter 改为 filter
+        // 核心修复：确保使用正确的 filter 函数
         return missing.filter(Boolean); 
     }
 
@@ -844,7 +851,6 @@
             newPrice: getNum("newPrice")
         };
         
-        // 费率转换 (如果 select 元素被隐藏或不存在，使用 "taker" 作为默认值)
         const openRole = params.openRole || "taker"; 
         const closeRole = params.closeRole || "taker"; 
 
