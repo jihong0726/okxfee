@@ -146,7 +146,6 @@
 
 <div class="container">
     <h1>📝 加密货币合约清算价格计算器</h1>
-
     <div class="input-group">
         <label for="entryPrice">开仓价格 ($/币)</label>
         <input type="number" id="entryPrice" placeholder="例如: 30000" value="30000">
@@ -212,6 +211,8 @@
         <p>开仓总成本 (USDT): $Cost = (\text{开仓价格} \times \text{开仓数量}) / \text{杠杆} + \text{手续费} + \text{资金费}$</p>
         <p>做多清算价格: $$\text{清算价格} = \text{开仓价格} \times \left(1 - \frac{IMR - MMR + \text{额外成本比}}{\text{开仓数量} \times (1 - MMR)}\right)$$</p>
         <p>做空清算价格: $$\text{清算价格} = \text{开仓价格} \times \left(1 + \frac{IMR - MMR + \text{额外成本比}}{\text{开仓数量} \times (1 + MMR)}\right)$$</p>
+        
+        <p style="margin-top: 15px; font-style: italic; color: #6c757d;">版本 V2.0.1 - 合约核心功能实现 (已移至最下方)</p>
     </div>
 </div>
 
@@ -254,7 +255,6 @@
         const totalExtraCost = positionValue * (feeRate + fundingRate);
         
         // (5) 总保证金 (用于计算盈亏的本金)
-        // 理论上是初始保证金加上账户余额中的可用资金，但此处简化为只考虑初始保证金
         const totalMargin = initialMargin; 
 
         // 4. 清算价格计算 (简化公式)
@@ -262,10 +262,7 @@
         let liquidationPrice;
         let tolerableChangePercentage;
 
-        // 简化公式推导: (IM - TotalExtraCost) / (PositionValue * MMR) = % Change
-        
         // 用于计算清算价格的“总成本/价值比” (包括手续费等额外成本)
-        // 这里的公式基于简化后的推导，重点是保证金与维持保证金的差额能覆盖的损失百分比
         const costFactor = initialMarginRate - maintenanceMarginRate;
 
         // 额外成本占合约价值的比率
@@ -315,16 +312,5 @@
     document.addEventListener('DOMContentLoaded', calculateLiquidationPrice);
 </script>
 
-</body>
-</html><!DOCTYPE html>
-<html lang="zh">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>合约计算器</title>
-</head>
-<body>
-
-<script src="u_perp_calc_final.js"></script>
 </body>
 </html>
