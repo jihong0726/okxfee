@@ -1,1413 +1,254 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <title>交易计算工具（内部自用）</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-      background: radial-gradient(circle at top left, #1a2b4b 0, #050815 50%, #02040a 100%);
-      color: #e9f0ff;
-      min-height: 100vh;
-    }
-    .app {
-      display: flex;
-      max-width: 1200px;
-      margin: 24px auto;
-      border-radius: 20px;
-      background: radial-gradient(circle at top left, rgba(33,69,120,0.8), rgba(4,10,25,0.96));
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
-      overflow: hidden;
-    }
-    .side {
-      width: 280px;
-      padding: 24px 20px;
-      border-right: 1px solid rgba(255,255,255,0.06);
-      background: linear-gradient(180deg, rgba(17,31,63,0.96) 0, rgba(5,10,25,0.98) 60%, rgba(4,8,20,1) 100%);
-    }
-    .side-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 4px 12px;
-      border-radius: 999px;
-      font-size: 12px;
-      color: #9fb4ff;
-      border: 1px solid rgba(159,180,255,0.4);
-      margin-bottom: 14px;
-      background: linear-gradient(90deg, rgba(37,70,150,0.7), rgba(34,134,209,0.5));
-    }
-    .side-title {
-      font-size: 24px;
-      font-weight: 800;
-      letter-spacing: 2px;
-      margin-bottom: 8px;
-    }
-    .side-subtitle {
-      font-size: 13px;
-      line-height: 1.5;
-      color: #9ba6c8;
-      margin-bottom: 20px;
-    }
-    .side-group-title {
-      font-size: 13px;
-      color: #7583b3;
-      margin: 12px 0 6px;
-    }
-    .product-btn {
-      width: 100%;
-      padding: 10px 12px;
-      margin-bottom: 8px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.03);
-      background: linear-gradient(135deg, rgba(16,37,80,0.9), rgba(9,20,52,1));
-      color: #dbe6ff;
-      text-align: left;
-      font-size: 13px;
-      cursor: pointer;
-      position: relative;
-      transition: all .18s ease-out;
-    }
-    .product-btn small {
-      display: block;
-      font-size: 11px;
-      color: #7f8cbc;
-      margin-top: 2px;
-    }
-    .product-btn.active {
-      border-color: rgba(82,144,255,0.9);
-      background: radial-gradient(circle at top left, #267dff, #1743a8);
-      box-shadow: 0 0 16px rgba(38,125,255,0.55);
-      color: #fff;
-    }
-    .product-btn.active small {
-      color: #d6e3ff;
-    }
-
-    .side-tip {
-      margin-top: 16px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: rgba(4,10,30,0.9);
-      border: 1px solid rgba(255,255,255,0.05);
-      color: #7d89b5;
-      font-size: 11px;
-      line-height: 1.5;
-    }
-
-    .main {
-      flex: 1;
-      padding: 24px 26px 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .main-header {
-      margin-bottom: 6px;
-    }
-    .main-title {
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-    .main-desc {
-      font-size: 13px;
-      color: #9aa5cf;
-      line-height: 1.5;
-    }
-
-    .calc-section {
-      border-radius: 18px;
-      background: radial-gradient(circle at top left, rgba(23,42,86,0.9), rgba(4,9,25,0.98));
-      border: 1px solid rgba(255,255,255,0.05);
-      padding: 14px 16px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      min-height: 350px;
-    }
-
-    .level2-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 2px;
-    }
-    .level2-btn {
-      padding: 5px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      border: 1px solid rgba(117,135,190,0.7);
-      background: rgba(7,17,45,0.7);
-      color: #c5d0ff;
-      cursor: pointer;
-      transition: all .18s ease-out;
-    }
-    .level2-btn:hover {
-      border-color: rgba(153,193,255,1);
-      color: #e5edff;
-    }
-    .level2-btn.active {
-      background: linear-gradient(135deg, #2b86ff, #2453ff);
-      border-color: transparent;
-      color: #fff;
-      box-shadow: 0 0 10px rgba(37,108,255,0.7);
-    }
-
-    .calc-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-      gap: 12px;
-      margin-top: 6px;
-    }
-    .panel {
-      border-radius: 14px;
-      background: linear-gradient(145deg, rgba(8,18,42,0.95), rgba(3,8,22,0.98));
-      border: 1px solid rgba(111,137,214,0.35);
-      padding: 10px 12px 12px;
-      position: relative;
-    }
-    .panel-header-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 6px;
-      font-size: 13px;
-      color: #c9d7ff;
-    }
-    .panel-header-row span:nth-child(2) {
-      font-size: 11px;
-      color: #7f8cbc;
-    }
-
-    .field {
-      margin-bottom: 6px;
-    }
-    .field label {
-      display: block;
-      font-size: 12px;
-      color: #a8b5e9;
-      margin-bottom: 2px;
-    }
-    .field-row {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-    .input {
-      width: 100%;
-      padding: 5px 7px;
-      border-radius: 9px;
-      border: 1px solid rgba(135,156,227,0.7);
-      background: rgba(4,11,30,0.95);
-      color: #e9f1ff;
-      font-size: 12px;
-      outline: none;
-    }
-    .input::placeholder {
-      color: #56628d;
-    }
-    select.input {
-      padding-right: 18px;
-    }
-
-    .radio-group {
-      display: flex;
-      gap: 10px;
-      font-size: 12px;
-      color: #b6c4f5;
-      margin-bottom: 4px;
-    }
-    .radio-group label {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      cursor: pointer;
-    }
-
-    .btn-row {
-      margin-top: 4px;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .btn {
-      padding: 5px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(145,167,245,0.8);
-      background: radial-gradient(circle at top left, rgba(29,66,143,0.95), rgba(9,20,52,1));
-      color: #e6edff;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all .18s ease-out;
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, #2f8cff, #2e60ff);
-      border-color: transparent;
-      box-shadow: 0 0 10px rgba(53,132,255,0.8);
-      color: #fff;
-    }
-    .btn:hover {
-      transform: translateY(-0.5px);
-      box-shadow: 0 0 8px rgba(97,143,255,0.6);
-    }
-
-    .textarea {
-      width: 100%;
-      min-height: 140px;
-      resize: vertical;
-      padding: 6px 8px;
-      border-radius: 10px;
-      border: 1px solid rgba(121,142,225,0.7);
-      background: rgba(2,6,20,0.96);
-      color: #dfe5ff;
-      font-size: 12px;
-      line-height: 1.5;
-      font-family: Menlo, SFMono-Regular, Consolas, "Liberation Mono", monospace;
-      white-space: pre-wrap;
-    }
-
-    .status {
-      margin-top: 4px;
-      font-size: 11px;
-      color: #7ba2ff;
-    }
-    .status.error {
-      color: #ff8c9b;
-    }
-
-    .formula {
-      margin-top: 8px;
-      padding-top: 6px;
-      border-top: 1px dashed rgba(110,130,205,0.6);
-      font-size: 11px;
-      color: #95a2d8;
-      line-height: 1.5;
-      white-space: pre-line;
-    }
-
-    .footer {
-      margin-top: 4px;
-      font-size: 11px;
-      color: #606b9c;
-      text-align: right;
-    }
-
-    @media (max-width: 960px) {
-      .app {
-        flex-direction: column;
-        margin: 0;
-        border-radius: 0;
-      }
-      .side {
-        width: 100%;
-        border-right: none;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
-      }
-      .calc-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
-</head>
-<body>
-<div class="app">
-  <aside class="side">
-    <div class="side-badge">交易计算助手 · 内部自用</div>
-    <div class="side-title">交易计算工具</div>
-    <div class="side-subtitle">
-      一个页面搞定：U 本位 / 币本位合约、现货杠杆、现货开仓均价、期权计算。
-      先选交易区，再选计算项目，右侧输入数据即可得到结果和中文公式说明。
-    </div>
-
-    <div class="side-group">
-      <div class="side-group-title">一级 · 选择交易区</div>
-      <button class="product-btn" data-product="U本位合约">
-        U 本位合约
-        <small>逐笔 / 全仓 · 合约收益、保证金、强平价等</small>
-      </button>
-      <button class="product-btn" data-product="币本位合约">
-        币本位合约
-        <small>以币计价 · 面值除价格形式的计算</small>
-      </button>
-      <button class="product-btn" data-product="现货杠杆">
-        现货杠杆
-        <small>初始保证金、维持保证金、保证金率等</small>
-      </button>
-      <button class="product-btn" data-product="现货开仓均价">
-        现货开仓均价
-        <small>多次买入 / 卖出后重新计算均价</small>
-      </button>
-      <button class="product-btn" data-product="期权">
-        期权
-        <small>期权费、手续费、盈亏平衡点、收益率等</small>
-      </button>
-    </div>
-
-    <div class="side-tip">
-      提示：左侧切换不同功能，右侧内容区域即时刷新。<br>
-      所有计算结果仅供参考，请以系统实际数据为准。
-    </div>
-  </aside>
-
-  <main class="main">
-    <div class="main-header">
-      <div class="main-title" id="currentProductTitle">请选择左侧交易区</div>
-      <div class="main-desc" id="currentProductDesc">
-        先在左侧选择一个交易区（例如 U 本位合约），再在下方选择要计算的项目。
-      </div>
-    </div>
-
-    <section class="calc-section">
-      <div id="level2Container">
-        <!-- 二级按钮放这里 -->
-      </div>
-
-      <div class="calc-grid">
-        <div class="panel">
-          <div class="panel-header-row">
-            <span id="panelInputTitle">输入区</span>
-            <span id="panelInputHint"></span>
-          </div>
-          <div id="inputFields"></div>
-          <div id="extraControls"></div>
-          <div class="btn-row">
-            <button class="btn" id="btnClear">清空输入</button>
-            <button class="btn btn-primary" id="btnCalc">开始计算</button>
-          </div>
-          <div class="status" id="statusMsg"></div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-header-row">
-            <span>结果预览</span>
-            <span>可复制 / 记录在飞书文档</span>
-          </div>
-          <textarea class="textarea" id="resultArea" placeholder="这里会显示：计算结果 + 关键中间值。"></textarea>
-          <div class="formula" id="formulaArea"></div>
-        </div>
-      </div>
-
-      <div class="footer">
-        本工具仅作内部计算参考，请以系统实际数据为准。版本：v1.0（示例）
-      </div>
-    </section>
-  </main>
-</div>
-
-<script>
-  // 工具函数
-  function toNum(v) {
-    const n = parseFloat(String(v).trim());
-    return isNaN(n) ? NaN : n;
+// ===== 一级：交易区配置 =====
+const TRADE_AREAS = {
+  "u-perp": {
+    name: "U 本位合约",
+    desc: "以 USDT 结算的合约：支持开仓均价、合约收益、保证金、资金费、强平价等多种计算。"
+  },
+  "coin-perp": {
+    name: "币本位合约",
+    desc: "以合约标的币种结算的永续 / 交割合约，面值除价格形式的计算。当前示例主要展示 U 本位逻辑，其他交易区后续补充。"
+  },
+  "spot-margin": {
+    name: "现货杠杆",
+    desc: "支持初始保证金、维持保证金、保证金率等计算。当前为占位说明，可先参考 U 本位合约的计算方式。"
+  },
+  "spot-avg": {
+    name: "现货开仓均价",
+    desc: "多次买入 / 卖出后，用于重新计算整体持仓的均价。逻辑与开仓均价类似。"
+  },
+  "options": {
+    name: "期权",
+    desc: "包含期权费、手续费、盈亏平衡点、收益率等。此版本暂未完全接入。"
   }
-  function clamp(x, min, max) {
-    return Math.min(Math.max(x, min), max);
-  }
+};
 
-  // 配置：一级 & 二级 & 输入字段 & 计算公式
-  const CONFIG = {
-    "U本位合约": {
-      desc: "以 USDT 结算的合约：支持开仓均价、合约收益、保证金、资金费、强平价等多种计算。",
-      items: {
-        "开仓均价": {
-          hint: "输入合约面值、原持仓张数和均价、新增张数和成交均价，计算新的总体开仓均价。",
-          inputs: [
-            { key: "face", label: "合约面值", placeholder: "例如 0.01" },
-            { key: "oldSize", label: "原持仓张数", placeholder: "整数，例如 100" },
-            { key: "oldPrice", label: "原持仓均价", placeholder: "USDT" },
-            { key: "newSize", label: "新开仓张数", placeholder: "整数，例如 50" },
-            { key: "newPrice", label: "新成交均价", placeholder: "USDT" }
-          ],
-          compute(values) {
-            const { face, oldSize, oldPrice, newSize, newPrice } = values;
-            const f = toNum(face), os = toNum(oldSize), op = toNum(oldPrice),
-                  ns = toNum(newSize), np = toNum(newPrice);
-            if ([f, os, op, ns, np].some(isNaN)) return { error: "请完整填写数字。" };
-            const totalValue =
-              f * os * op + f * ns * np;
-            const totalFace = f * (os + ns);
-            if (totalFace === 0) return { error: "总张数不能为 0。" };
-            const avg = totalValue / totalFace;
-            return {
-              text: `新的开仓均价 ≈ ${avg.toFixed(4)} USDT`,
-              formula:
-                "开仓均价 =（合约面值 × 原持仓张数 × 原持仓均价 + 合约面值 × 新开仓张数 × 新成交均价）÷（合约面值 ×（原持仓张数 + 新开仓张数））。"
-            };
-          }
-        },
-        "手续费": {
-          hint: "根据开/平仓均价、张数和手续费率，计算本次手续费。",
-          inputs: [
-            { key: "face", label: "合约面值", placeholder: "例如 0.01" },
-            { key: "size", label: "成交张数", placeholder: "整数，例如 100" },
-            { key: "price", label: "开仓或平仓均价", placeholder: "USDT" },
-            { key: "feeRate", label: "手续费率", placeholder: "例如 0.0005" }
-          ],
-          compute(v) {
-            const f = toNum(v.face), s = toNum(v.size), p = toNum(v.price), r = toNum(v.feeRate);
-            if ([f,s,p,r].some(isNaN)) return { error: "请完整填写数字。" };
-            const fee = f * s * p * r;
-            return {
-              text: `本次手续费 ≈ ${fee.toFixed(4)} USDT`,
-              formula: "手续费 = 合约面值 × 张数 × 开/平仓均价 × 手续费率。"
-            };
-          }
-        },
-        "合约收益": {
-          hint: "填入开仓均价、平仓均价、张数和方向，计算本次合约收益。",
-          inputs: [
-            { key: "face", label: "合约面值", placeholder: "例如 0.01" },
-            { key: "size", label: "平仓张数", placeholder: "整数，例如 50" },
-            { key: "open", label: "开仓均价", placeholder: "USDT" },
-            { key: "close", label: "平仓均价", placeholder: "USDT" }
-          ],
-          extra: { type: "direction" },
-          compute(v, extra) {
-            const f = toNum(v.face), s = toNum(v.size),
-                  op = toNum(v.open), cp = toNum(v.close);
-            if ([f,s,op,cp].some(isNaN)) return { error: "请完整填写数字。" };
-            const dir = extra.direction || "long";
-            let profit;
-            if (dir === "long") {
-              profit = f * s * (cp - op);
-            } else {
-              profit = f * s * (op - cp);
-            }
-            const txt = dir === "long" ? "多仓" : "空仓";
-            return {
-              text: `${txt}本次合约收益 ≈ ${profit.toFixed(4)} USDT`,
-              formula: dir === "long"
-                ? "多仓：收益 = 合约面值 × 张数 ×（平仓均价 − 开仓均价）。"
-                : "空仓：收益 = 合约面值 × 张数 ×（开仓均价 − 平仓均价）。"
-            };
-          }
-        },
-        "收益率": {
-          hint: "在已知收益金额、开仓保证金的前提下，计算收益率。",
-          inputs: [
-            { key: "profit", label: "收益金额", placeholder: "USDT" },
-            { key: "margin", label: "开仓固定保证金", placeholder: "USDT" }
-          ],
-          compute(v) {
-            const p = toNum(v.profit), m = toNum(v.margin);
-            if ([p,m].some(isNaN)) return { error: "请完整填写数字。" };
-            if (m === 0) return { error: "开仓保证金不能为 0。" };
-            const rate = p / m * 100;
-            return {
-              text: `收益率 ≈ ${rate.toFixed(2)} %`,
-              formula: "收益率 = 收益 ÷ 开仓固定保证金 × 100%。"
-            };
-          }
-        },
-        "开仓保证金（初始）": {
-          hint: "根据开仓价格、张数和杠杆，计算初始保证金。",
-          inputs: [
-            { key: "face", label: "合约面值", placeholder: "例如 0.01" },
-            { key: "price", label: "开仓价格", placeholder: "USDT" },
-            { key: "size", label: "开仓张数", placeholder: "整数，例如 100" },
-            { key: "leverage", label: "杠杆倍数", placeholder: "例如 20" }
-          ],
-          compute(v) {
-            const f = toNum(v.face), p = toNum(v.price),
-                  s = toNum(v.size), l = toNum(v.leverage);
-            if ([f,p,s,l].some(isNaN)) return { error: "请完整填写数字。" };
-            if (l === 0) return { error: "杠杆倍数不能为 0。" };
-            const margin = f * p * s / l;
-            return {
-              text: `开仓保证金（初始）≈ ${margin.toFixed(4)} USDT`,
-              formula: "开仓保证金（初始）= 合约面值 × 开仓价格 × 张数 ÷ 杠杆倍数。"
-            };
-          }
-        },
-        "维持保证金": {
-          hint: "根据标记价格和维持保证金率，计算当前维持保证金。",
-          inputs: [
-            { key: "face", label: "合约面值", placeholder: "例如 0.01" },
-            { key: "size", label: "持仓张数（绝对值）", placeholder: "整数，例如 100" },
-            { key: "rate", label: "维持保证金率", placeholder: "例如 0.005" },
-            { key: "mark", label: "标记价格", placeholder: "USDT" }
-          ],
-          compute(v) {
-            const f = toNum(v.face), s = Math.abs(toNum(v.size)),
-                  r = toNum(v.rate), m = toNum(v.mark);
-            if ([f,s,r,m].some(isNaN)) return { error: "请完整填写数字。" };
-            const mm = f * s * r * m;
-            return {
-              text: `维持保证金 ≈ ${mm.toFixed(4)} USDT`,
-              formula: "维持保证金 = 合约面值 × |张数| × 维持保证金率 × 标记价格。"
-            };
-          }
-        },
-        "仓位价值": {
-          hint: "根据标记价格计算当前仓位价值。",
-          inputs: [
-            { key: "face", label: "合约面值", placeholder: "例如 0.01" },
-            { key: "size", label: "持仓张数", placeholder: "整数，例如 100" },
-            { key: "mark", label: "标记价格", placeholder: "USDT" }
-          ],
-          compute(v) {
-            const f = toNum(v.face), s = toNum(v.size), m = toNum(v.mark);
-            if ([f,s,m].some(isNaN)) return { error: "请完整填写数字。" };
-            const value = f * s * m;
-            return {
-              text: `当前仓位价值 ≈ ${value.toFixed(4)} USDT`,
-              formula: "仓位价值 = 合约面值 × 张数 × 标记价格。"
-            };
-          }
-        },
-        "资金费用": {
-          hint: "根据仓位价值和资金费率，计算单次资金费用。",
-          inputs: [
-            { key: "value", label: "仓位价值", placeholder: "USDT" },
-            { key: "rate", label: "资金费率", placeholder: "例如 0.0001" }
-          ],
-          compute(v) {
-            const val = toNum(v.value), r = toNum(v.rate);
-            if ([val,r].some(isNaN)) return { error: "请完整填写数字。" };
-            const fe = val * r;
-            return {
-              text: `本次资金费用 ≈ ${fe.toFixed(4)} USDT`,
-              formula: "资金费用 = 仓位价值 × 资金费率。"
-            };
-          }
-        },
-        "跨币种全仓维持保证金率": {
-          hint: "在已知有效保证金、维持保证金和减仓手续费时，计算整体维持保证金率。",
-          inputs: [
-            { key: "equity", label: "有效保证金", placeholder: "USDT" },
-            { key: "mm", label: "维持保证金", placeholder: "USDT" },
-            { key: "closeFee", label: "减仓手续费", placeholder: "USDT" }
-          ],
-          compute(v) {
-            const e = toNum(v.equity), m = toNum(v.mm), cf = toNum(v.closeFee);
-            if ([e,m,cf].some(isNaN)) return { error: "请完整填写数字。" };
-            if (m + cf === 0) return { error: "维持保证金 + 减仓手续费不能为 0。" };
-            const rate = e / (m + cf);
-            return {
-              text: `跨币种全仓维持保证金率 ≈ ${rate.toFixed(4)}`,
-              formula: "跨币种全仓维持保证金率 = 有效保证金 ÷（维持保证金 + 减仓手续费）。"
-            };
-          }
-        },
-        "资金费率": {
-          hint: "根据平均溢价指数、利率及上下限制，计算当前资金费率（简化版）。",
-          inputs: [
-            { key: "premium", label: "平均溢价指数", placeholder: "例如 0.0002" },
-            { key: "interest", label: "利率", placeholder: "例如 0.0001" },
-            { key: "upper", label: "资金费率上限", placeholder: "例如 0.003" },
-            { key: "lower", label: "资金费率下限", placeholder: "例如 -0.003" }
-          ],
-          compute(v) {
-            const prem = toNum(v.premium),
-                  ir = toNum(v.interest),
-                  up = toNum(v.upper),
-                  low = toNum(v.lower);
-            if ([prem,ir,up,low].some(isNaN)) return { error: "请完整填写数字。" };
-            let rateDiff = ir - prem;
-            rateDiff = clamp(rateDiff, -0.0005, 0.0005);
-            let mid = prem + rateDiff;
-            mid = clamp(mid, low, up);
-            return {
-              text: `当前资金费率 ≈ ${mid.toFixed(6)}`,
-              formula:
-                "步骤：\n1）利率差 = 利率 − 平均溢价指数，限制在 ±0.05% 范围内；\n2）中间值 = 平均溢价指数 + 利率差；\n3）再将中间值限制在资金费率上下限之间，得到最终资金费率。"
-            };
-          }
-        },
-        "预估强平价": {
-          hint: "根据保证金余额、持仓张数、开仓均价、维持保证金率和手续费率，估算强平价（简化版）。",
-          inputs: [
-            { key: "equity", label: "保证金余额", placeholder: "USDT" },
-            { key: "face", label: "合约面值", placeholder: "例如 0.01" },
-            { key: "size", label: "持仓张数", placeholder: "整数，例如 100" },
-            { key: "open", label: "开仓均价", placeholder: "USDT" },
-            { key: "mmRate", label: "维持保证金率", placeholder: "例如 0.005" },
-            { key: "feeRate", label: "减仓手续费率", placeholder: "例如 0.0005" }
-          ],
-          extra: { type: "direction" },
-          compute(v, extra) {
-            const e = toNum(v.equity),
-                  f = toNum(v.face),
-                  s = toNum(v.size),
-                  op = toNum(v.open),
-                  mm = toNum(v.mmRate),
-                  fr = toNum(v.feeRate);
-            if ([e,f,s,op,mm,fr].some(isNaN)) return { error: "请完整填写数字。" };
-            const dir = extra.direction || "long";
-            const base = f * s;
-            const totalRate = mm + fr;
-            if (dir === "long") {
-              const denom = base * (totalRate - 1);
-              if (denom === 0) return { error: "参数组合不合理，分母为 0。" };
-              const price = (e - base * op) / denom;
-              return {
-                text: `多仓预估强平价 ≈ ${price.toFixed(4)} USDT（公式为简化版，仅作参考）`,
-                formula:
-                  "多仓（简化）：预估强平价 ≈（保证金余额 − 合约面值 × 张数 × 开仓均价）÷（合约面值 × 张数 ×（维持保证金率 + 手续费率 − 1））。"
-              };
-            } else {
-              const denom = base * (totalRate + 1);
-              if (denom === 0) return { error: "参数组合不合理，分母为 0。" };
-              const price = (e + base * op) / denom;
-              return {
-                text: `空仓预估强平价 ≈ ${price.toFixed(4)} USDT（公式为简化版，仅作参考）`,
-                formula:
-                  "空仓（简化）：预估强平价 ≈（保证金余额 + 合约面值 × 张数 × 开仓均价）÷（合约面值 × 张数 ×（维持保证金率 + 手续费率 + 1））。"
-              };
-            }
-          }
-        }
+// ===== 二级：计算项配置 =====
+// 这里只把「开仓均价」的计算公式写完整；其他项先标记为开发中。
+const CALC_CONFIGS = {
+  "open-price": {
+    key: "open-price",
+    title: "输入区 · 开仓均价",
+    subtitle: "输入合约面值、原持仓张数和均价、新增张数和成交均价，计算新的总体开仓均价。",
+    fields: [
+      { id: "faceValue", label: "合约面值", placeholder: "例如 0.01", unit: "" },
+      { id: "oldSize",   label: "原持仓张数", placeholder: "整数，例如 100", unit: "张" },
+      { id: "oldPrice",  label: "原持仓均价", placeholder: "例如 1000", unit: "USDT" },
+      { id: "newSize",   label: "新开仓张数", placeholder: "整数，例如 50", unit: "张" },
+      { id: "newPrice",  label: "新成交均价", placeholder: "例如 2000", unit: "USDT" }
+    ],
+    calc: function (values) {
+      const fv = Number(values.faceValue || 0);
+      const oldSize = Number(values.oldSize || 0);
+      const oldPrice = Number(values.oldPrice || 0);
+      const newSize = Number(values.newSize || 0);
+      const newPrice = Number(values.newPrice || 0);
+
+      const numerator = fv * oldSize * oldPrice + fv * newSize * newPrice;
+      const denominator = fv * (oldSize + newSize);
+
+      if (!denominator || !isFinite(denominator)) {
+        return {
+          resultText: "请确认：合约面值、原持仓张数、新开仓张数等输入是否正确。",
+          plain: "开仓均价 = （合约面值 × 原持仓张数 × 原持仓均价 + 合约面值 × 新开仓张数 × 新成交均价）÷（合约面值 ×（原持仓张数 + 新开仓张数））。",
+          withNumbers: "代入数字后：分母为 0 或无效，无法计算，请重新检查输入。"
+        };
       }
-    },
 
-    "币本位合约": {
-      desc: "以币作为保证金和计价单位的合约：开仓均价、收益、保证金等采用“面值除价格”的计算方式。",
-      items: {
-        "开仓均价": {
-          hint: "币本位下，多次加仓后的整体开仓均价。",
-          inputs: [
-            { key: "face", label: "合约面值", placeholder: "例如 100" },
-            { key: "oldSize", label: "原持仓张数", placeholder: "整数" },
-            { key: "oldPrice", label: "原持仓均价", placeholder: "USDT" },
-            { key: "newSize", label: "新开仓张数", placeholder: "整数" },
-            { key: "newPrice", label: "新成交均价", placeholder: "USDT" }
-          ],
-          compute(v) {
-            const f = toNum(v.face),
-                  os = toNum(v.oldSize),
-                  op = toNum(v.oldPrice),
-                  ns = toNum(v.newSize),
-                  np = toNum(v.newPrice);
-            if ([f,os,op,ns,np].some(isNaN)) return { error: "请完整填写数字。" };
-            const num = f * (os + ns);
-            const den = f * os / op + f * ns / np;
-            if (den === 0) return { error: "分母为 0，请检查价格。"};
-            const avg = num / den;
-            return {
-              text: `币本位新的开仓均价 ≈ ${avg.toFixed(4)} USDT`,
-              formula:
-                "开仓均价 = 合约面值 ×（原持仓张数 + 新开仓张数）÷（合约面值 × 原持仓张数 ÷ 原持仓均价 + 合约面值 × 新开仓张数 ÷ 新成交均价）。"
-            };
-          }
-        },
-        "手续费": {
-          hint: "币本位手续费按照“面值 ÷ 价格 × 张数 × 手续费率”计算。",
-          inputs: [
-            { key: "face", label: "合约面值", placeholder: "例如 100" },
-            { key: "size", label: "成交张数", placeholder: "整数" },
-            { key: "price", label: "开仓或平仓均价", placeholder: "USDT" },
-            { key: "feeRate", label: "手续费率", placeholder: "例如 0.0005" }
-          ],
-          compute(v) {
-            const f = toNum(v.face), s = toNum(v.size),
-                  p = toNum(v.price), r = toNum(v.feeRate);
-            if ([f,s,p,r].some(isNaN)) return { error: "请完整填写数字。" };
-            if (p === 0) return { error: "价格不能为 0。"};
-            const fee = f * s / p * r;
-            return {
-              text: `本次手续费 ≈ ${fee.toFixed(6)} 币`,
-              formula: "手续费 = 合约面值 × 张数 ÷ 价格 × 手续费率。"
-            };
-          }
-        },
-        "合约收益": {
-          hint: "币本位收益基于“面值 ÷ 价格”差计算。",
-          inputs: [
-            { key: "face", label: "合约面值", placeholder: "例如 100" },
-            { key: "size", label: "平仓张数", placeholder: "整数" },
-            { key: "open", label: "开仓均价", placeholder: "USDT" },
-            { key: "close", label: "平仓均价", placeholder: "USDT" }
-          ],
-          extra: { type: "direction" },
-          compute(v, extra) {
-            const f = toNum(v.face), s = toNum(v.size),
-                  op = toNum(v.open), cp = toNum(v.close);
-            if ([f,s,op,cp].some(isNaN)) return { error: "请完整填写数字。" };
-            if (op === 0 || cp === 0) return { error: "价格不能为 0。"};
-            const dir = extra.direction || "long";
-            let profit;
-            if (dir === "long") {
-              profit = (f / op - f / cp) * s;
-            } else {
-              profit = (f / cp - f / op) * s;
-            }
-            const txt = dir === "long" ? "多仓" : "空仓";
-            return {
-              text: `${txt}本次收益 ≈ ${profit.toFixed(6)} 币`,
-              formula: dir === "long"
-                ? "多仓：收益 =（合约面值 ÷ 开仓价格 − 合约面值 ÷ 平仓价格）× 平仓张数。"
-                : "空仓：收益 =（合约面值 ÷ 平仓价格 − 合约面值 ÷ 开仓价格）× 平仓张数。"
-            };
-          }
-        },
-        "开仓保证金（初始）": {
-          hint: "币本位初始保证金 = 合约面值 ÷ 开仓价格 × 张数 ÷ 杠杆倍数。",
-          inputs: [
-            { key: "face", label: "合约面值", placeholder: "例如 100" },
-            { key: "price", label: "开仓价格", placeholder: "USDT" },
-            { key: "size", label: "开仓张数", placeholder: "整数" },
-            { key: "leverage", label: "杠杆倍数", placeholder: "例如 20" }
-          ],
-          compute(v) {
-            const f = toNum(v.face), p = toNum(v.price),
-                  s = toNum(v.size), l = toNum(v.leverage);
-            if ([f,p,s,l].some(isNaN)) return { error: "请完整填写数字。" };
-            if (p === 0 || l === 0) return { error: "价格和杠杆不能为 0。"};
-            const margin = f / p * s / l;
-            return {
-              text: `开仓保证金（初始）≈ ${margin.toFixed(6)} 币`,
-              formula: "开仓保证金（初始）= 合约面值 ÷ 开仓价格 × 张数 ÷ 杠杆倍数。"
-            };
-          }
-        },
-        "维持保证金": {
-          hint: "币本位维持保证金 = 合约面值 × |张数| × 维持保证金率 ÷ 标记价格。",
-          inputs: [
-            { key: "face", label: "合约面值", placeholder: "例如 100" },
-            { key: "size", label: "持仓张数（绝对值）", placeholder: "整数" },
-            { key: "rate", label: "维持保证金率", placeholder: "例如 0.005" },
-            { key: "mark", label: "标记价格", placeholder: "USDT" }
-          ],
-          compute(v) {
-            const f = toNum(v.face), s = Math.abs(toNum(v.size)),
-                  r = toNum(v.rate), m = toNum(v.mark);
-            if ([f,s,r,m].some(isNaN)) return { error: "请完整填写数字。" };
-            if (m === 0) return { error: "标记价格不能为 0。"};
-            const mm = f * s * r / m;
-            return {
-              text: `维持保证金 ≈ ${mm.toFixed(6)} 币`,
-              formula: "维持保证金 = 合约面值 × |张数| × 维持保证金率 ÷ 标记价格。"
-            };
-          }
-        },
-        "仓位价值": {
-          hint: "币本位仓位价值 = 合约面值 × 张数 ÷ 标记价格。",
-          inputs: [
-            { key: "face", label: "合约面值", placeholder: "例如 100" },
-            { key: "size", label: "持仓张数", placeholder: "整数" },
-            { key: "mark", label: "标记价格", placeholder: "USDT" }
-          ],
-          compute(v) {
-            const f = toNum(v.face), s = toNum(v.size), m = toNum(v.mark);
-            if ([f,s,m].some(isNaN)) return { error: "请完整填写数字。" };
-            if (m === 0) return { error: "标记价格不能为 0。"};
-            const value = f * s / m;
-            return {
-              text: `仓位价值 ≈ ${value.toFixed(6)} 币`,
-              formula: "仓位价值 = 合约面值 × 张数 ÷ 标记价格。"
-            };
-          }
-        },
-        "预估强平价": {
-          hint: "币本位预估强平价（简化版），根据仓位价值、保证金和开仓价估算。",
-          inputs: [
-            { key: "equity", label: "保证金余额", placeholder: "币" },
-            { key: "value", label: "仓位价值", placeholder: "币" },
-            { key: "open", label: "开仓均价", placeholder: "USDT" },
-            { key: "mmRate", label: "维持保证金率", placeholder: "例如 0.005" },
-            { key: "feeRate", label: "手续费率", placeholder: "例如 0.0005" }
-          ],
-          extra: { type: "direction" },
-          compute(v, extra) {
-            const e = toNum(v.equity),
-                  val = toNum(v.value),
-                  op = toNum(v.open),
-                  mm = toNum(v.mmRate),
-                  fr = toNum(v.feeRate);
-            if ([e,val,op,mm,fr].some(isNaN)) return { error: "请完整填写数字。" };
-            const dir = extra.direction || "long";
-            const totalRate = mm + fr;
-            if (op === 0) return { error: "开仓价格不能为 0。"};
-            if (dir === "long") {
-              const denom = e + val / op;
-              if (denom === 0) return { error: "分母为 0，请检查参数。"};
-              const price = val * (totalRate + 1) / denom;
-              return {
-                text: `多仓预估强平价 ≈ ${price.toFixed(4)} USDT（简化版）`,
-                formula: "多仓（简化）：预估强平价 ≈ 仓位价值 ×（维持保证金率 + 手续费率 + 1）÷（保证金余额 + 仓位价值 ÷ 开仓均价）。"
-              };
-            } else {
-              const denom = e - val / op;
-              if (denom === 0) return { error: "分母为 0，请检查参数。"};
-              const price = val * (totalRate - 1) / denom;
-              return {
-                text: `空仓预估强平价 ≈ ${price.toFixed(4)} USDT（简化版）`,
-                formula: "空仓（简化）：预估强平价 ≈ 仓位价值 ×（维持保证金率 + 手续费率 − 1）÷（保证金余额 − 仓位价值 ÷ 开仓均价）。"
-              };
-            }
-          }
-        }
-      }
-    },
+      const avg = numerator / denominator;
+      const avgStr = avg.toFixed(4);
 
-    "现货杠杆": {
-      desc: "现货杠杆场景：支持初始保证金、维持保证金、减仓手续费和保证金率计算，需结合仓位类型判断。",
-      items: {
-        "初始保证金": {
-          hint: "根据负债数量、标记价格和杠杆，结合仓位类型，估算现货杠杆初始保证金（简化版）。",
-          inputs: [
-            { key: "debt", label: "负债数量", placeholder: "币或计价货币数量" },
-            { key: "mark", label: "标记价格", placeholder: "USDT" },
-            { key: "leverage", label: "杠杆倍数", placeholder: "例如 3" }
-          ],
-          extra: { type: "spotType" },
-          compute(v, extra) {
-            const d = toNum(v.debt), m = toNum(v.mark), l = toNum(v.leverage);
-            if ([d,m,l].some(isNaN)) return { error: "请完整填写数字。" };
-            if (l === 0) return { error: "杠杆倍数不能为 0。"};
-            const t = extra.spotType || "baseLong";
-            let margin;
-            // 这里用简化逻辑，只体现不同仓位类型的趋势
-            if (t === "baseLong") {
-              margin = d / (m * l);
-            } else if (t === "baseShort") {
-              margin = d / l;
-            } else if (t === "quoteLong") {
-              margin = d / l;
-            } else { // quoteShort
-              margin = d * m / l;
-            }
-            return {
-              text: `估算初始保证金 ≈ ${margin.toFixed(6)}（简化，仅供参考）`,
-              formula:
-                "根据“交易货币 / 计价货币做保证金 + 多 / 空”进行区分：示意逻辑为\n- 交易货币做保证金多仓：负债 ÷（标记价格 × 杠杆倍数）；\n- 交易货币做保证金空仓：负债 ÷ 杠杆倍数；\n- 计价货币做保证金多仓：负债 ÷ 杠杆倍数；\n- 计价货币做保证金空仓：负债 × 标记价格 ÷ 杠杆倍数。"
-            };
-          }
-        },
-        "维持保证金": {
-          hint: "根据负债、维持保证金率和标记价格估算维持保证金（示意版）。",
-          inputs: [
-            { key: "debt", label: "负债数量", placeholder: "币或计价货币数量" },
-            { key: "mmRate", label: "仓位维持保证金率", placeholder: "例如 0.05" },
-            { key: "mark", label: "标记价格", placeholder: "USDT" }
-          ],
-          extra: { type: "spotType" },
-          compute(v, extra) {
-            const d = toNum(v.debt), r = toNum(v.mmRate), m = toNum(v.mark);
-            if ([d,r,m].some(isNaN)) return { error: "请完整填写数字。" };
-            const t = extra.spotType || "baseLong";
-            let mm;
-            if (t === "baseLong") {
-              mm = d * r / m;
-            } else if (t === "quoteLong") {
-              mm = d * r;
-            } else if (t === "quoteShort") {
-              mm = d * r * m;
-            } else {
-              mm = d * r; // baseShort
-            }
-            return {
-              text: `估算维持保证金 ≈ ${mm.toFixed(6)}（简化，仅供参考）`,
-              formula:
-                "示意：\n- 交易货币做保证金多仓：维持保证金 ≈ 负债 × 维持保证金率 ÷ 标记价格；\n- 计价货币做保证金多仓：维持保证金 ≈ 负债 × 维持保证金率；\n- 计价货币做保证金空仓：维持保证金 ≈ 负债 × 维持保证金率 × 标记价格；\n其余类型可按类似方式处理。"
-            };
-          }
-        },
-        "减仓手续费": {
-          hint: "示意计算：根据负债、仓位档位维持保证金率和手续费率估算减仓手续费（简化版）。",
-          inputs: [
-            { key: "debt", label: "负债数量", placeholder: "币或计价货币数量" },
-            { key: "mmRate", label: "仓位档位维持保证金率", placeholder: "例如 0.05" },
-            { key: "feeRate", label: "手续费率", placeholder: "例如 0.001" }
-          ],
-          compute(v) {
-            const d = toNum(v.debt), r = toNum(v.mmRate), fr = toNum(v.feeRate);
-            if ([d,r,fr].some(isNaN)) return { error: "请完整填写数字。" };
-            const closeFee = d * (1 + r) * fr;
-            return {
-              text: `估算减仓手续费 ≈ ${closeFee.toFixed(6)}（简化，仅供参考）`,
-              formula: "示意：减仓手续费 ≈ 负债 ×（1 + 仓位档位维持保证金率）× 手续费率。"
-            };
-          }
-        },
-        "保证金率": {
-          hint: "根据有效保证金、维持保证金和减仓手续费，计算现货杠杆保证金率。",
-          inputs: [
-            { key: "equity", label: "有效保证金", placeholder: "单位同保证金币种" },
-            { key: "mm", label: "维持保证金", placeholder: "同上" },
-            { key: "closeFee", label: "减仓手续费", placeholder: "同上" }
-          ],
-          compute(v) {
-            const e = toNum(v.equity), m = toNum(v.mm), cf = toNum(v.closeFee);
-            if ([e,m,cf].some(isNaN)) return { error: "请完整填写数字。" };
-            if (m + cf === 0) return { error: "维持保证金 + 减仓手续费不能为 0。"};
-            const rate = e / (m + cf);
-            return {
-              text: `保证金率 ≈ ${rate.toFixed(4)}`,
-              formula: "保证金率 = 有效保证金 ÷（维持保证金 + 减仓手续费）。"
-            };
-          }
-        }
-      }
-    },
+      const plainFormula =
+        "开仓均价 = （合约面值 × 原持仓张数 × 原持仓均价 + 合约面值 × 新开仓张数 × 新成交均价）" +
+        "÷（合约面值 ×（原持仓张数 + 新开仓张数））。";
 
-    "现货开仓均价": {
-      desc: "适用于现货或杠杆现货：在多次买入 / 卖出之后，重新计算整体开仓均价。",
-      items: {
-        "开仓均价": {
-          hint: "输入原持仓数量与均价，以及新增成交数量和价格，计算新的开仓均价。",
-          inputs: [
-            { key: "oldQty", label: "原持仓数量", placeholder: "例如 1.5" },
-            { key: "oldPrice", label: "原开仓均价", placeholder: "USDT" },
-            { key: "newQty", label: "新增成交数量", placeholder: "例如 0.3" },
-            { key: "newPrice", label: "新增成交价格", placeholder: "USDT" }
-          ],
-          compute(v) {
-            const oq = toNum(v.oldQty),
-                  op = toNum(v.oldPrice),
-                  nq = toNum(v.newQty),
-                  np = toNum(v.newPrice);
-            if ([oq,op,nq,np].some(isNaN)) return { error: "请完整填写数字。" };
-            if (oq + nq === 0) return { error: "总数量不能为 0。"};
-            const avg = (oq * op + nq * np) / (oq + nq);
-            return {
-              text: `新的现货开仓均价 ≈ ${avg.toFixed(4)} USDT`,
-              formula: "开仓均价 =（原持仓数量 × 原开仓均价 + 新增数量 × 新成交价格）÷（原持仓数量 + 新增数量）。"
-            };
-          }
-        }
-      }
-    },
+      const withNumbers =
+        `代入数字：\n` +
+        `开仓均价 = (${fv} × ${oldSize} × ${oldPrice} + ${fv} × ${newSize} × ${newPrice}) ` +
+        `÷ (${fv} × (${oldSize} + ${newSize})) ≈ ${avgStr} USDT。`;
 
-    "期权": {
-      desc: "期权相关：期权费、交易手续费、行权手续费、市值、盈亏平衡点、虚值程度、收益率等。",
-      items: {
-        "期权费": {
-          hint: "根据开仓均价、合约乘数和张数计算期权费。",
-          inputs: [
-            { key: "price", label: "开仓均价", placeholder: "例如 0.0025" },
-            { key: "multiplier", label: "合约乘数", placeholder: "例如 100" },
-            { key: "size", label: "成交张数", placeholder: "整数" }
-          ],
-          compute(v) {
-            const p = toNum(v.price), mul = toNum(v.multiplier), s = toNum(v.size);
-            if ([p,mul,s].some(isNaN)) return { error: "请完整填写数字。" };
-            const fee = p * mul * s;
-            return {
-              text: `期权费 = ${fee.toFixed(6)}`,
-              formula: "期权费 = 开仓均价 × 合约乘数 × 成交张数。"
-            };
-          }
-        },
-        "期权交易手续费": {
-          hint: "根据合约面值、乘数、张数、手续费率和期权费，估算交易手续费（含 7% 期权费限制）。",
-          inputs: [
-            { key: "feeRate", label: "手续费率", placeholder: "例如 0.0005（正数或负数）" },
-            { key: "optionFee", label: "期权费（单份）", placeholder: "例如 0.0025" },
-            { key: "multiplier", label: "合约乘数", placeholder: "例如 100" },
-            { key: "face", label: "合约面值", placeholder: "例如 1" },
-            { key: "size", label: "成交张数", placeholder: "整数" }
-          ],
-          compute(v) {
-            const r = toNum(v.feeRate),
-                  optFee = toNum(v.optionFee),
-                  mul = toNum(v.multiplier),
-                  face = toNum(v.face),
-                  s = toNum(v.size);
-            if ([r,optFee,mul,face,s].some(isNaN)) return { error: "请完整填写数字。" };
-            const baseNotional = mul * face * s;
-            const limit = 0.07 * optFee * baseNotional;
-            let fee;
-            if (r >= 0) {
-              fee = Math.min(r * baseNotional, limit);
-            } else {
-              fee = Math.max(r * baseNotional, -limit);
-            }
-            return {
-              text: `期权交易手续费 ≈ ${fee.toFixed(6)}`,
-              formula:
-                "逻辑：\n1）按“手续费率 × 合约乘数 × 合约面值 × 张数”计算基础手续费；\n2）同时限制在“±7% × 期权费 × 合约乘数 × 合约面值 × 张数”范围内；\n3）最终取两者之间的较小绝对值。"
-            };
-          }
-        },
-        "行权手续费": {
-          hint: "根据结算价格、合约乘数和面值计算行权手续费（简化为 0.02% 与吃单手续费率取小值）。",
-          inputs: [
-            { key: "multiplier", label: "合约乘数", placeholder: "例如 100" },
-            { key: "face", label: "合约面值", placeholder: "例如 1" },
-            { key: "size", label: "成交张数", placeholder: "整数" },
-            { key: "settle", label: "结算价格", placeholder: "USDT" },
-            { key: "takerFee", label: "吃单手续费率", placeholder: "例如 0.0005" }
-          ],
-          compute(v) {
-            const mul = toNum(v.multiplier),
-                  face = toNum(v.face),
-                  s = toNum(v.size),
-                  price = toNum(v.settle),
-                  tf = toNum(v.takerFee);
-            if ([mul,face,s,price,tf].some(isNaN)) return { error: "请完整填写数字。" };
-            const base = mul * face * s;
-            const fee1 = 0.0002 * base; // 0.02%
-            const fee2 = tf * base;
-            // 第三档（7% × 期权费）这里省略，只取前两者中的较小值
-            const fee = Math.min(fee1, fee2);
-            return {
-              text: `行权手续费（示意）≈ ${fee.toFixed(6)}`,
-              formula:
-                "简化逻辑：行权手续费 ≈ min(0.02% × 合约乘数 × 合约面值 × 张数， 吃单手续费率 × 合约乘数 × 合约面值 × 张数)。"
-            };
-          }
-        },
-        "期权市值": {
-          hint: "根据合约面值、乘数和张数计算期权市值。",
-          inputs: [
-            { key: "face", label: "合约面值", placeholder: "例如 1" },
-            { key: "multiplier", label: "合约乘数", placeholder: "例如 100" },
-            { key: "size", label: "持仓张数", placeholder: "整数" }
-          ],
-          compute(v) {
-            const f = toNum(v.face), mul = toNum(v.multiplier), s = toNum(v.size);
-            if ([f,mul,s].some(isNaN)) return { error: "请完整填写数字。" };
-            const val = f * mul * s;
-            return {
-              text: `期权市值 = ${val.toFixed(6)}`,
-              formula: "期权市值 = 合约面值 × 合约乘数 × 持仓张数。"
-            };
-          }
-        },
-        "买入盈亏平衡点": {
-          hint: "输入执行价格和期权费比例，计算买入一方的盈亏平衡点。",
-          inputs: [
-            { key: "strike", label: "执行价格", placeholder: "USDT" },
-            { key: "feeRatio", label: "期权费占比", placeholder: "例如 0.1 表示 10%" }
-          ],
-          compute(v) {
-            const k = toNum(v.strike), r = toNum(v.feeRatio);
-            if ([k,r].some(isNaN)) return { error: "请完整填写数字。" };
-            if (1 + r === 0) return { error: "分母为 0，请检查费率。"};
-            const point = k / (1 + r);
-            return {
-              text: `买入盈亏平衡点 ≈ ${point.toFixed(4)}`,
-              formula: "买入盈亏平衡点 = 执行价格 ÷（1 + 期权费占比）。"
-            };
-          }
-        },
-        "卖出盈亏平衡点": {
-          hint: "输入执行价格和期权费比例，计算卖出一方的盈亏平衡点。",
-          inputs: [
-            { key: "strike", label: "执行价格", placeholder: "USDT" },
-            { key: "feeRatio", label: "期权费占比", placeholder: "例如 0.1 表示 10%" }
-          ],
-          compute(v) {
-            const k = toNum(v.strike), r = toNum(v.feeRatio);
-            if ([k,r].some(isNaN)) return { error: "请完整填写数字。" };
-            if (1 - r === 0) return { error: "分母为 0，请检查费率。"};
-            const point = k / (1 - r);
-            return {
-              text: `卖出盈亏平衡点 ≈ ${point.toFixed(4)}`,
-              formula: "卖出盈亏平衡点 = 执行价格 ÷（1 − 期权费占比）。"
-            };
-          }
-        },
-        "虚值程度": {
-          hint: "根据执行价格和远期价格，以及看涨 / 看跌方向，计算虚值程度。",
-          inputs: [
-            { key: "strike", label: "执行价格", placeholder: "USDT" },
-            { key: "forward", label: "远期价格", placeholder: "USDT" }
-          ],
-          extra: { type: "optionType" },
-          compute(v, extra) {
-            const k = toNum(v.strike), f = toNum(v.forward);
-            if ([k,f].some(isNaN)) return { error: "请完整填写数字。" };
-            const t = extra.optionType || "call";
-            let degree;
-            if (t === "call") {
-              degree = k - f;
-            } else {
-              degree = f - k;
-            }
-            const name = t === "call" ? "看涨" : "看跌";
-            return {
-              text: `${name}期权虚值程度 ≈ ${degree.toFixed(4)}`,
-              formula:
-                "看涨：虚值程度 = 执行价格 − 远期价格；\n看跌：虚值程度 = 远期价格 − 执行价格。"
-            };
-          }
-        },
-        "成交额": {
-          hint: "输入数量、收盘价以及单位类型（币 / 张），计算期权成交额。",
-          inputs: [
-            { key: "qty", label: "成交数量", placeholder: "例如 10" },
-            { key: "price", label: "收盘价", placeholder: "USDT" },
-            { key: "face", label: "合约面值（单位为张时填写）", placeholder: "可选，币为单位时可为 1" }
-          ],
-          extra: { type: "tradeUnit" },
-          compute(v, extra) {
-            const q = toNum(v.qty), p = toNum(v.price), face = toNum(v.face || 1);
-            if ([q,p].some(isNaN)) return { error: "请至少填写数量和价格。" };
-            const unit = extra.tradeUnit || "coin";
-            let amt;
-            if (unit === "coin") {
-              amt = q * p;
-            } else {
-              amt = q * p * face;
-            }
-            const txt = unit === "coin" ? "以币为单位" : "以张为单位";
-            return {
-              text: `${txt}的成交额 ≈ ${amt.toFixed(6)}`,
-              formula:
-                "若单位为“币”：成交额 = 数量 × 收盘价；\n若单位为“张”：成交额 = 数量 × 收盘价 × 合约面值。"
-            };
-          }
-        },
-        "期权收益率": {
-          hint: "根据期权收益和期权费计算收益率。",
-          inputs: [
-            { key: "profit", label: "收益", placeholder: "正为盈利，负为亏损" },
-            { key: "fee", label: "期权费", placeholder: "总期权费" }
-          ],
-          compute(v) {
-            const p = toNum(v.profit), f = toNum(v.fee);
-            if ([p,f].some(isNaN)) return { error: "请完整填写数字。" };
-            if (f === 0) return { error: "期权费不能为 0。"};
-            const rate = p / f * 100;
-            return {
-              text: `期权收益率 ≈ ${rate.toFixed(2)} %`,
-              formula: "期权收益率 = 收益 ÷ 期权费 × 100%。"
-            };
-          }
-        },
-        "期权最大可买": {
-          hint: "输入可用余额、单份期权费和单份交易手续费，估算最大可买数量。",
-          inputs: [
-            { key: "balance", label: "可用余额", placeholder: "与期权费同币种" },
-            { key: "feePer", label: "单份期权费", placeholder: "例如 0.0025" },
-            { key: "tradeFeePer", label: "单份交易手续费", placeholder: "例如 0.0001" }
-          ],
-          compute(v) {
-            const b = toNum(v.balance),
-                  f = toNum(v.feePer),
-                  tf = toNum(v.tradeFeePer);
-            if ([b,f,tf].some(isNaN)) return { error: "请完整填写数字。" };
-            if (f + tf <= 0) return { error: "期权费 + 手续费需大于 0。"};
-            const max = Math.floor(b / (f + tf));
-            return {
-              text: `理论最大可买期权数量 ≈ ${max} 份`,
-              formula: "期权最大可买 ≈ 可用余额 ÷（单份期权费 + 单份交易手续费）。"
-            };
-          }
-        }
-      }
-    }
-  };
+      const resultText =
+        `新的开仓均价 ≈ ${avgStr} USDT\n\n` +
+        `提示：结果仅供参考，请再结合系统实际持仓信息确认。`;
 
-  // 状态
-  let currentProduct = null;
-  let currentItemKey = null;
-  let extraState = {
-    direction: "long",
-    spotType: "baseLong",
-    optionType: "call",
-    tradeUnit: "coin"
-  };
-
-  const productBtns = document.querySelectorAll(".product-btn");
-  const level2Container = document.getElementById("level2Container");
-  const panelInputTitle = document.getElementById("panelInputTitle");
-  const panelInputHint = document.getElementById("panelInputHint");
-  const inputFields = document.getElementById("inputFields");
-  const extraControls = document.getElementById("extraControls");
-  const statusMsg = document.getElementById("statusMsg");
-  const resultArea = document.getElementById("resultArea");
-  const formulaArea = document.getElementById("formulaArea");
-  const btnClear = document.getElementById("btnClear");
-  const btnCalc = document.getElementById("btnCalc");
-  const productTitle = document.getElementById("currentProductTitle");
-  const productDesc = document.getElementById("currentProductDesc");
-
-  function setProduct(name) {
-    currentProduct = name;
-    currentItemKey = null;
-    extraState = {
-      direction: "long",
-      spotType: "baseLong",
-      optionType: "call",
-      tradeUnit: "coin"
-    };
-    productBtns.forEach(btn => {
-      btn.classList.toggle("active", btn.dataset.product === name);
-    });
-
-    const conf = CONFIG[name];
-    if (!conf) return;
-
-    productTitle.textContent = `当前交易区：${name}`;
-    productDesc.textContent = conf.desc;
-
-    // 渲染二级按钮
-    level2Container.innerHTML = "";
-    const row = document.createElement("div");
-    row.className = "level2-list";
-    Object.keys(conf.items).forEach(key => {
-      const btn = document.createElement("button");
-      btn.className = "level2-btn";
-      btn.textContent = key;
-      btn.dataset.key = key;
-      btn.onclick = () => setItem(key);
-      row.appendChild(btn);
-    });
-    level2Container.appendChild(row);
-
-    inputFields.innerHTML = "";
-    extraControls.innerHTML = "";
-    panelInputTitle.textContent = "输入区";
-    panelInputHint.textContent = "";
-    statusMsg.textContent = "请先在上方选择一个计算项目。";
-    statusMsg.classList.remove("error");
-    resultArea.value = "";
-    formulaArea.textContent = "";
-  }
-
-  function setItem(key) {
-    if (!currentProduct) return;
-    const conf = CONFIG[currentProduct];
-    const item = conf.items[key];
-    if (!item) return;
-    currentItemKey = key;
-
-    // 高亮二级按钮
-    const btns = level2Container.querySelectorAll(".level2-btn");
-    btns.forEach(b => b.classList.toggle("active", b.dataset.key === key));
-
-    panelInputTitle.textContent = `输入区 · ${key}`;
-    panelInputHint.textContent = item.hint || "";
-
-    // 渲染输入字段
-    inputFields.innerHTML = "";
-    (item.inputs || []).forEach(inp => {
-      const field = document.createElement("div");
-      field.className = "field";
-      const label = document.createElement("label");
-      label.textContent = inp.label;
-      const input = document.createElement("input");
-      input.className = "input";
-      input.placeholder = inp.placeholder || "";
-      input.dataset.key = inp.key;
-      field.appendChild(label);
-      field.appendChild(input);
-      inputFields.appendChild(field);
-    });
-
-    // 渲染额外控制（方向 / 仓位类型等）
-    extraControls.innerHTML = "";
-    if (item.extra && item.extra.type === "direction") {
-      const div = document.createElement("div");
-      div.className = "radio-group";
-      div.innerHTML = `
-        <label><input type="radio" name="direction" value="long" checked> 多仓</label>
-        <label><input type="radio" name="direction" value="short"> 空仓</label>
-      `;
-      div.onchange = e => {
-        if (e.target.name === "direction") extraState.direction = e.target.value;
+      return {
+        resultText,
+        plain: plainFormula,
+        withNumbers
       };
-      extraControls.appendChild(div);
     }
-    if (item.extra && item.extra.type === "spotType") {
-      const div = document.createElement("div");
-      div.className = "radio-group";
-      div.innerHTML = `
-        <label><input type="radio" name="spotType" value="baseLong" checked> 交易货币做保证金 · 多仓</label>
-        <label><input type="radio" name="spotType" value="baseShort"> 交易货币做保证金 · 空仓</label>
-        <label><input type="radio" name="spotType" value="quoteLong"> 计价货币做保证金 · 多仓</label>
-        <label><input type="radio" name="spotType" value="quoteShort"> 计价货币做保证金 · 空仓</label>
-      `;
-      div.onchange = e => {
-        if (e.target.name === "spotType") extraState.spotType = e.target.value;
-      };
-      extraControls.appendChild(div);
-    }
-    if (item.extra && item.extra.type === "optionType") {
-      const div = document.createElement("div");
-      div.className = "radio-group";
-      div.innerHTML = `
-        <label><input type="radio" name="optionType" value="call" checked> 看涨期权</label>
-        <label><input type="radio" name="optionType" value="put"> 看跌期权</label>
-      `;
-      div.onchange = e => {
-        if (e.target.name === "optionType") extraState.optionType = e.target.value;
-      };
-      extraControls.appendChild(div);
-    }
-    if (item.extra && item.extra.type === "tradeUnit") {
-      const div = document.createElement("div");
-      div.className = "radio-group";
-      div.innerHTML = `
-        <label><input type="radio" name="tradeUnit" value="coin" checked> 以币为单位</label>
-        <label><input type="radio" name="tradeUnit" value="contract"> 以张为单位</label>
-      `;
-      div.onchange = e => {
-        if (e.target.name === "tradeUnit") extraState.tradeUnit = e.target.value;
-      };
-      extraControls.appendChild(div);
-    }
+  },
 
-    statusMsg.textContent = "请输入数据后点击“开始计算”。";
-    statusMsg.classList.remove("error");
-    resultArea.value = "";
-    formulaArea.textContent = "";
+  // 其他计算项占位
+  "fee":          { dev: true, name: "手续费" },
+  "pnl":          { dev: true, name: "合约收益" },
+  "roe":          { dev: true, name: "收益率" },
+  "init-margin":  { dev: true, name: "开仓保证金（初始）" },
+  "mm-margin":    { dev: true, name: "维持保证金" },
+  "position-value": { dev: true, name: "仓位价值" },
+  "funding":      { dev: true, name: "资金费用" },
+  "strong-price": { dev: true, name: "预估强平价" }
+};
+
+// ===== DOM 获取 =====
+const areaListEl = document.getElementById("areaList");
+const areaButtons = areaListEl.querySelectorAll(".area-item");
+
+const currentAreaNameEl = document.getElementById("currentAreaName");
+const currentAreaDescEl = document.getElementById("currentAreaDesc");
+
+const calcTabsEl = document.getElementById("calcTabs");
+const calcTabButtons = calcTabsEl.querySelectorAll(".calc-tab");
+
+const inputTitleEl = document.getElementById("inputTitle");
+const inputSubtitleEl = document.getElementById("inputSubtitle");
+const inputFieldsEl = document.getElementById("inputFields");
+
+const btnClear = document.getElementById("btnClear");
+const btnCalc = document.getElementById("btnCalc");
+
+const resultBoxEl = document.getElementById("resultBox");
+const formulaPlainEl = document.getElementById("formulaPlain");
+const formulaWithNumbersEl = document.getElementById("formulaWithNumbers");
+
+let currentAreaKey = "u-perp";
+let currentCalcKey = "open-price";
+
+// ===== 辅助函数 =====
+
+// 渲染输入项（第三层）
+function renderFields(calcKey) {
+  const cfg = CALC_CONFIGS[calcKey];
+
+  if (!cfg || cfg.dev) {
+    inputTitleEl.textContent = "输入区 · 功能开发中";
+    inputSubtitleEl.textContent =
+      "该计算项尚在整理中，当前版本仅开通“开仓均价”作为示例。";
+    inputFieldsEl.innerHTML = "";
+    resultBoxEl.value = "";
+    formulaPlainEl.textContent = "暂未开放该公式，后续版本会补充。";
+    formulaWithNumbersEl.textContent = "";
+    return;
   }
 
-  function getCurrentItem() {
-    if (!currentProduct || !currentItemKey) return null;
-    const conf = CONFIG[currentProduct];
-    return conf.items[currentItemKey] || null;
+  inputTitleEl.textContent = cfg.title;
+  inputSubtitleEl.textContent = cfg.subtitle;
+
+  const rowsHtml = cfg.fields.map(field => {
+    return `
+      <div class="form-row">
+        <div class="form-label">${field.label}</div>
+        <input
+          type="text"
+          class="form-input"
+          id="${field.id}"
+          placeholder="${field.placeholder || ''}"
+        />
+        ${field.unit ? `<div class="form-unit">${field.unit}</div>` : ""}
+      </div>
+    `;
+  }).join("");
+
+  inputFieldsEl.innerHTML = rowsHtml;
+
+  // 重置结果区说明
+  resultBoxEl.value = "";
+  formulaPlainEl.textContent = "这里会展示：通用的中文公式。";
+  formulaWithNumbersEl.textContent = "这里会展示：代入你填写数字后的公式以及近似结果。";
+}
+
+// 从输入区读取数据
+function collectValues(calcKey) {
+  const cfg = CALC_CONFIGS[calcKey];
+  if (!cfg || cfg.dev) return {};
+
+  const values = {};
+  cfg.fields.forEach(field => {
+    const el = document.getElementById(field.id);
+    values[field.id] = el ? el.value.trim() : "";
+  });
+  return values;
+}
+
+// 清空输入
+function clearInputs(calcKey) {
+  const cfg = CALC_CONFIGS[calcKey];
+  if (!cfg || cfg.dev) {
+    inputFieldsEl.querySelectorAll("input").forEach(i => i.value = "");
+    resultBoxEl.value = "";
+    formulaPlainEl.textContent = "这里会展示：通用的中文公式。";
+    formulaWithNumbersEl.textContent = "这里会展示：代入你填写数字后的公式以及近似结果。";
+    return;
   }
 
-  btnClear.onclick = () => {
-    const inputs = inputFields.querySelectorAll("input");
-    inputs.forEach(i => i.value = "");
-    resultArea.value = "";
-    formulaArea.textContent = "";
-    statusMsg.textContent = "已清空输入。";
-    statusMsg.classList.remove("error");
-  };
+  cfg.fields.forEach(field => {
+    const el = document.getElementById(field.id);
+    if (el) el.value = "";
+  });
 
-  btnCalc.onclick = () => {
-    const item = getCurrentItem();
-    if (!item) {
-      statusMsg.textContent = "请先选择交易区和具体计算项目。";
-      statusMsg.classList.add("error");
-      return;
-    }
-    const inputs = inputFields.querySelectorAll("input");
-    const values = {};
-    inputs.forEach(i => {
-      values[i.dataset.key] = i.value;
-    });
+  resultBoxEl.value = "";
+  formulaPlainEl.textContent = "这里会展示：通用的中文公式。";
+  formulaWithNumbersEl.textContent = "这里会展示：代入你填写数字后的公式以及近似结果。";
+}
 
-    let result;
-    try {
-      result = item.compute(values, extraState);
-    } catch (e) {
-      console.error(e);
-      result = { error: "计算过程中出现错误，请检查输入或稍后重试。" };
-    }
+// ===== 事件绑定 =====
 
-    if (result.error) {
-      statusMsg.textContent = result.error;
-      statusMsg.classList.add("error");
-      resultArea.value = "";
-      formulaArea.textContent = "";
-    } else {
-      statusMsg.textContent = "计算完成。结果仅供参考。";
-      statusMsg.classList.remove("error");
-      resultArea.value = result.text || "";
-      formulaArea.textContent = result.formula || "";
-    }
-  };
+// 一级：交易区切换
+areaButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    const key = btn.getAttribute("data-area");
+    if (!key || !TRADE_AREAS[key]) return;
 
-  // 默认选中第一个交易区
-  setProduct("U本位合约");
-  // 同时默认选中第一个计算项
-  const firstItemKey = Object.keys(CONFIG["U本位合约"].items)[0];
-  setItem(firstItemKey);
-</script>
-</body>
-</html>
+    currentAreaKey = key;
+
+    areaButtons.forEach(b => b.classList.remove("area-item-active"));
+    btn.classList.add("area-item-active");
+
+    const info = TRADE_AREAS[key];
+    currentAreaNameEl.textContent = info.name;
+    currentAreaDescEl.textContent = info.desc;
+  });
+});
+
+// 二级：计算项目切换
+calcTabButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    const key = btn.getAttribute("data-calc");
+    if (!key) return;
+
+    currentCalcKey = key;
+
+    calcTabButtons.forEach(b => b.classList.remove("calc-tab-active"));
+    btn.classList.add("calc-tab-active");
+
+    renderFields(key);
+  });
+});
+
+// 按钮：清空
+btnClear.addEventListener("click", () => {
+  clearInputs(currentCalcKey);
+});
+
+// 按钮：开始计算
+btnCalc.addEventListener("click", () => {
+  const cfg = CALC_CONFIGS[currentCalcKey];
+
+  if (!cfg || cfg.dev) {
+    resultBoxEl.value =
+      "当前计算项尚未开放。\n" +
+      "本版本优先支持“开仓均价”的计算，其它功能整理完成后可以无缝接入同一界面。";
+    formulaPlainEl.textContent = "";
+    formulaWithNumbersEl.textContent = "";
+    return;
+  }
+
+  const values = collectValues(currentCalcKey);
+  const res = cfg.calc(values);
+
+  resultBoxEl.value = res.resultText || "";
+  formulaPlainEl.textContent = res.plain || "";
+  formulaWithNumbersEl.textContent = res.withNumbers || "";
+});
+
+// ===== 页面初始化 =====
+renderFields(currentCalcKey);
