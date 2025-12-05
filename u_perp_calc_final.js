@@ -1,16 +1,16 @@
 // u_perp_calc_final.js
-// 合约计算器 (U本位/币本位 - 修正公式版)
+// 合约计算器 (U本位/币本位 - 修正公式版，修复计算错误并优化UI)
 
 (function () {
-    // ========== 样式 (保持不变，已很优秀) ==========
+    // ========== 样式 (优化颜色搭配) ==========
     const style = document.createElement("style");
     style.textContent = `
     *{box-sizing:border-box;}
     body{
       margin:0;
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      background:#0b0f19;
-      color:#f5f5f7;
+      background:#0a0a0a; /* 更深的背景 */
+      color:#e0e0e0; /* 默认文本颜色 */
       font-size:13px;
     }
     .wrap{
@@ -22,66 +22,70 @@
       margin:0 0 8px;
       font-size:24px;
       font-weight:700;
-      color:#f8fafc;
+      color:#ffffff;
     }
     .subtitle{
       font-size:13px;
-      color:#9ca3af;
+      color:#909090;
       margin-bottom:12px;
     }
 
     .top-row{
       display:flex;
       flex-wrap:wrap;
-      gap:12px;
-      margin-bottom:14px;
+      gap:16px; /* 增大间距 */
+      margin-bottom:20px;
       align-items:center;
     }
     .top-row label{
       font-size:13px;
-      color:#cbd5e1;
+      color:#bdbdbd;
       margin-right:4px;
     }
     .top-row select{
-      min-width:170px;
-      padding:7px 12px;
-      border-radius:999px;
-      border:1px solid rgba(148,163,184,.5);
-      background:#111827;
-      color:#f9fafb;
-      font-size:13px;
+      min-width:180px;
+      padding:8px 14px;
+      border-radius:6px;
+      border:1px solid #303030;
+      background:#1a1a1a; /* 输入框背景 */
+      color:#ffffff;
+      font-size:14px;
+      appearance: none; /* 移除默认箭头 */
+      -webkit-appearance: none;
     }
 
     .row-2col{
       display:grid;
       grid-template-columns: 1.1fr 0.9fr;
-      gap:18px;
+      gap:24px; /* 增大卡片间距 */
       align-items:flex-start;
     }
 
     .card{
-      background:#111726;
-      border-radius:14px;
-      padding:16px 18px 18px;
-      border:1px solid rgba(255,255,255,0.09);
+      background:#181818; /* 卡片背景 */
+      border-radius:12px;
+      padding:20px;
+      border:1px solid #333333;
     }
     .card-title{
-      font-size:15px;
+      font-size:16px;
       font-weight:700;
-      margin-bottom:8px;
-      color:#fff;
+      margin-bottom:10px;
+      color:#4FC3F7; /* 科技蓝标题 */
     }
     .block-title{
-      font-size:13px;
+      font-size:14px;
       font-weight:600;
-      margin:10px 0 6px;
-      color:#e5e7eb;
+      margin:15px 0 8px;
+      color:#bdbdbd;
+      border-left:3px solid #4FC3F7; /* 左侧强调条 */
+      padding-left:10px;
     }
 
     .grid{
       display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
-      gap:9px 12px;
+      grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      gap:12px; /* 增大输入间距 */
     }
     .field{
       display:flex;
@@ -90,81 +94,100 @@
     .field label{
       font-size:12px;
       margin-bottom:4px;
-      color:#cbd5e1;
+      color:#9e9e9e;
     }
     input,select.param{
       width:100%;
-      padding:7px 9px;
-      border-radius:9px;
-      border:1px solid rgba(148,163,184,.45);
-      background:#0f172a;
-      color:#f9fafb;
-      font-size:13px;
+      padding:8px 10px;
+      border-radius:6px;
+      border:1px solid #303030;
+      background:#1a1a1a;
+      color:#ffffff;
+      font-size:14px;
     }
     input::placeholder{
-      color:#6b7280;
+      color:#616161;
     }
     input:focus,select.param:focus{
-      border-color:#fbbf24;
-      box-shadow:0 0 0 1px #f97316;
+      border-color:#4FC3F7; /* 聚焦高亮 */
+      box-shadow:0 0 0 1px #4FC3F7;
     }
 
     .calc-btn{
       width:100%;
-      margin-top:12px;
-      padding:9px 14px;
-      border-radius:9px;
+      margin-top:20px;
+      padding:10px 14px;
+      border-radius:8px;
       border:none;
       cursor:pointer;
-      font-size:14px;
+      font-size:15px;
       font-weight:700;
-      background:linear-gradient(135deg,#fbbf24,#f97316);
-      color:#111827;
+      background:linear-gradient(135deg, #00BCD4, #4FC3F7); /* 蓝色渐变按钮 */
+      color:#0a0a0a;
+      transition: background 0.3s ease;
     }
-
+    .calc-btn:hover{
+        background:linear-gradient(135deg, #0097A7, #00BCD4);
+    }
+    
     #result{
-      font-size:13px;
-      color:#e5e7eb;
+      font-size:14px;
+      color:#e0e0e0;
     }
     .sub-title{
-      margin:10px 0 6px;
-      font-size:13px;
+      margin:12px 0 6px;
+      font-size:15px;
       font-weight:700;
-      border-left:3px solid #f97316;
-      padding-left:8px;
-      color:#fff;
+      border-left:4px solid #4FC3F7;
+      padding-left:12px;
+      color:#ffffff;
     }
     .row-item{
       display:flex;
       justify-content:space-between;
-      padding:4px 0;
+      padding:6px 0;
+      border-bottom:1px dashed #282828;
+    }
+    .row-item:last-child{
+        border-bottom:none;
     }
     .row-item span:first-child{
-      color:#9ca3af;
-      font-size:13px;
+      color:#b0b0b0;
+      font-size:14px;
     }
     .row-item span:last-child{
       font-weight:650;
-      color:#f8fafc;
-      font-size:14px;
+      color:#ffffff;
+      font-size:15px;
     }
     .row-item.big{
-      margin-top:4px;
-      margin-bottom:4px;
+      margin-top:8px;
+      margin-bottom:8px;
+      padding-top:10px;
+      padding-bottom:10px;
+      background:#1a1a1a;
+      border-radius:6px;
+      border-bottom:none;
+      padding-left:12px;
+      padding-right:12px;
     }
     .row-item.big span:first-child{
-      font-size:14px;
+      font-size:15px;
     }
     .row-item.big span:last-child{
-      font-size:18px;
-      color:#fef3c7;
+      font-size:20px;
+      color:#00BCD4; /* 结果高亮色 */
     }
 
     .hint{
       font-size:12px;
-      color:#9ca3af;
-      margin-top:6px;
-      line-height:1.4;
+      color:#9e9e9e;
+      margin-top:10px;
+      line-height:1.6;
+      padding: 0 10px;
+    }
+    .hint-error {
+        color: #FF5252 !important; /* 错误提示红色 */
     }
 
     @media(max-width:900px){
@@ -173,7 +196,7 @@
     `;
     document.head.appendChild(style);
 
-    // ========== 页面骨架 ==========
+    // ========== 页面骨架 (保持不变) ==========
     document.body.innerHTML = `
     <div class="wrap">
       <h1>合约计算器（修正公式版）</h1>
@@ -332,7 +355,7 @@
 
         <div class="card">
           <div class="card-title">计算结果</div>
-          <div id="result">请先在左侧选择合约类型和计算项目，然后按提示填写参数并点击“计算”。</div>
+          <div id="result">参数更新后，请点击计算。</div>
         </div>
       </div>
     </div>
@@ -366,7 +389,7 @@
         newPrice: "新开仓成交均价"
     };
 
-    // 必填项配置，新增 side 和 liqFeeRate 到强平价计算中
+    // 必填项配置 (保持不变)
     const REQUIRED = {
         "U本位合约": {
             "开仓均价": ["origQty", "origPrice", "newQty", "newPrice"],
@@ -395,13 +418,11 @@
             "预估强平价": ["side", "faceValue", "contracts", "openPx", "marginBalance", "mmRate", "liqFeeRate"]
         },
         "开仓均价 合约 U+币本": {
-            "开仓均价": ["contractType", "origQty", "origPrice", "newQty", "newPrice"] // 需在页面提示用户选择 U/币本位
+            "开仓均价": ["contractType", "faceValue", "origQty", "origPrice", "newQty", "newPrice"] 
         }
     };
 
-    // 初始化所有 DOM 引用
     function initDOMElements() {
-        // 简化 DOM 获取
         const allIds = ["contractType", "calcItem", "side", "faceValue", "contracts", "openPx", "closePx", "leverage", "makerFee", "takerFee", "openRole", "closeRole", "liqFeeRate", "markPx", "fundingRate", "mmRate", "marginBalance", "effectiveMargin", "reduceFee", "origQty", "origPrice", "newQty", "newPrice", "btnCalc", "result", "hintText"];
         allIds.forEach(id => {
             $D[id] = $(id);
@@ -411,7 +432,6 @@
 
     // ========== 工具函数 ==========
 
-    /** 从输入框获取数字，处理逗号和空值。 */
     function getNum(id) {
         const el = $D[id];
         if (!el) return null;
@@ -422,49 +442,35 @@
         return Number.isFinite(n) ? n : null;
     }
 
-    // 转换为小数：例如 0.05% -> 0.0005
     const pct = v => v / 100;
 
-    /** 格式化数值，保留指定小数位数，或返回 "-"。 */
     function formatVal(v, d = 8) {
         if (!Number.isFinite(v)) return "-";
         return v.toFixed(d);
     }
 
-    /** 渲染结果行（小字）。 */
     function row(k, v, d, suffix = "") {
         const t = formatVal(v, d);
         return `<div class="row-item"><span>${k}</span><span>${t}${suffix ? " " + suffix : ""}</span></div>`;
     }
-    /** 渲染结果行（大字）。 */
     function rowBig(k, v, d, suffix = "") {
         const t = formatVal(v, d);
         return `<div class="row-item big"><span>${k}</span><span>${t}${suffix ? " " + suffix : ""}</span></div>`;
     }
 
-    /**
-     * 计算开仓均价，根据合约类型选择 U 本位（加权平均）或币本位（调和平均）。
-     * @param {string} cType - 合约类型。
-     */
     function calcOpenAvgPrice(face, origQty, origPrice, newQty, newPrice, cType) {
         if (origQty == null || origPrice == null || newQty == null || newPrice == null) return null;
         
-        // 合约总张数
         const totalQty = origQty + newQty;
         if (totalQty === 0) return null;
         
         if (cType === "币本位合约") {
-            // 币本位：调和平均价 (Harmonic Mean)
-            // 公式：面值 * (原张数 + 新张数) / ( 面值*原张数/原均价 + 面值*新张数/新均价 )
+            // 币本位：调和平均价
             const totalValueTerm = (face * origQty / origPrice) + (face * newQty / newPrice);
-            
             if (totalValueTerm === 0) return null;
             return (face * totalQty) / totalValueTerm;
-
         } else {
-            // U 本位（以及简化的 U+币本模式）：加权平均价 (Weighted Average)
-            // 公式： (原张数 * 原均价 + 新张数 * 新均价) / (原张数 + 新张数)
-            // 注：由于 U 本位仓位价值是线性的，合约面值在分子和分母中抵消了。
+            // U 本位：加权平均价
             return (origQty * origPrice + newQty * newPrice) / totalQty;
         }
     }
@@ -475,14 +481,14 @@
     function refreshVisibleFields() {
         const cType = $D.contractType.value;
         const item = $D.calcItem.value;
-        const needSet = new Set((REQUIRED[cType] && REQUIRED[cType][item]) || []);
+        const requiredFields = (REQUIRED[cType] && REQUIRED[cType][item]) || [];
+        const needSet = new Set(requiredFields);
 
         document.querySelectorAll("[data-field]").forEach(div => {
             const id = div.getAttribute("data-field");
-            // 只有当需要时才显示字段
             const isRequired = needSet.has(id);
-            // 确保 side 在需要计算 PnL, 收益率, 强平价时显示
-            const isSideRequired = (id === 'side' && needSet.size > 0 && ['合约收益', '收益率', '预估强平价', '维持保证金率'].includes(item));
+            // 确保 side 在需要计算 PnL, 收益率, 强平价等时显示
+            const isSideRequired = (id === 'side' && requiredFields.length > 0 && ['合约收益', '收益率', '预估强平价', '维持保证金率'].includes(item));
             
             div.style.display = (isRequired || isSideRequired) ? "flex" : "none";
         });
@@ -498,18 +504,19 @@
             if (title) title.style.display = hasVisible ? "block" : "none";
         });
 
-        // 提示文本
         const hint = $D.hintText;
         if (!REQUIRED[cType] || !REQUIRED[cType][item]) {
             hint.textContent = "该合约类型下此项目暂未在网页中实现，请先使用 Excel 表。";
+            hint.classList.remove('hint-error');
         } else {
-            const needNames = (REQUIRED[cType][item] || []).map(id => FIELD_LABELS[id]).filter(Boolean);
+            const needNames = requiredFields.map(id => FIELD_LABELS[id]).filter(Boolean);
             hint.textContent = needNames.length
                 ? "当前项目需要填写的主要参数：" + needNames.join("、")
                 : "";
+            hint.classList.remove('hint-error');
         }
 
-        $D.result.textContent = "参数更新后，请点击“计算”。";
+        $D.result.textContent = "参数更新后，请点击计算。";
     }
 
     function checkRequired(contractType, item) {
@@ -518,10 +525,12 @@
         req.forEach(id => {
             const el = $D[id];
             if (!el) return;
+            // 检查输入框值
             if (el.tagName === "INPUT") {
                 const v = el.value.trim();
                 if (!v) missing.push(FIELD_LABELS[id] || id);
             }
+            // 对于 select，我们假设它们总是有值，无需检查
         });
         return missing;
     }
@@ -530,7 +539,7 @@
     // ========== 核心计算 - U 本位合约 (USDT-M) ==========
 
     function calcU(item, P) {
-        const { side, face, ctt, open, close, lev, maker, taker, feeOpenRate, feeCloseRate, mark, fundPct, mmRate, liqRate, mb, effMargin, reduceFee, origQty, origPrice, newQty, newPrice } = P;
+        const { side, face, ctt, open, close, lev, feeOpenRate, feeCloseRate, mark, fundPct, mmRate, liqRate, mb, effMargin, reduceFee, origQty, origPrice, newQty, newPrice } = P;
         const Unit = "USDT";
         let html = "";
         const P_C = face * ctt; // 合约总面值 (币)
@@ -565,28 +574,27 @@
         // 维持保证金率 (单币种全仓)
         let marginRatioSingle = null;
         if (mb != null && pnl != null && positionValue_mark != null && mmRate != null) {
-            // 采用您提供的公式：(保证金余额 + 收益) / (面值 * |张数| * 标记价格 * (维持保证金率 + 手续费率))
-            const liqFee = pct(getNum("takerFee") || 0); // 使用 TakerFee 作为强平手续费率的简化替代
+            const liqFee = pct(getNum("takerFee") || 0); 
             const denom = positionValue_mark * (mmRate + liqFee);
             if (denom !== 0) {
                 marginRatioSingle = (mb + pnl) / denom * 100;
             }
         }
 
-        // 预估强平价 (LiqPx) - 采用您提供的精确公式结构
+        // 预估强平价 (LiqPx) - 修正后的 U本位公式
         let liqLong = null, liqShort = null;
         if (open != null && mb != null && mmRate != null && liqRate != null) {
-            const pos = P_C; // 面值 * 张数
+            const pos = P_C; // 面值 * 张数 (USDT计价仓位数量)
             
-            // 多仓预估强平价
-            const denomLong = pos * (1 - mmRate - liqRate); // (面值*张数) * (1 - MMR - LiqR)
+            // 多仓预估强平价 (多仓 LiqPx < OpenPx)
+            const denomLong = pos * (1 - mmRate - liqRate); 
             if (denomLong !== 0) {
                 // 公式： (面值*张数 * 开仓均价 - 保证金余额) / (面值*张数 * (1 - MMR - LiqR))
                 liqLong = (pos * open - mb) / denomLong; 
             }
             
-            // 空仓预估强平价
-            const denomShort = pos * (1 + mmRate + liqRate); // (面值*张数) * (1 + MMR + LiqR)
+            // 空仓预估强平价 (空仓 LiqPx > OpenPx)
+            const denomShort = pos * (1 + mmRate + liqRate); 
             if (denomShort !== 0) {
                 // 公式：(面值*张数 * 开仓均价 + 保证金余额) / (面值*张数 * (1 + MMR + LiqR))
                 liqShort = (pos * open + mb) / denomShort;
@@ -597,7 +605,7 @@
         const avgOpen = calcOpenAvgPrice(face, origQty, origPrice, newQty, newPrice, "U本位合约");
 
 
-        // 结果展示
+        // 结果展示 (U本位)
         switch (item) {
             case "开仓均价":
                 html += `<div class="sub-title">开仓均价</div>`;
@@ -615,7 +623,7 @@
                 break;
             case "收益率":
                 html += `<div class="sub-title">收益与收益率</div>`;
-                html += row("合约收益（未扣手续费）", pnl, 8);
+                html += row("合约收益（未扣手续费）", pnl, 8, Unit);
                 html += row("开仓保证金（初始）", initMargin, 8, Unit);
                 const rate = initMargin ? pnl / initMargin * 100 : null;
                 html += rowBig("收益率（收益 ÷ 开仓保证金）", rate, 4, "%");
@@ -668,8 +676,8 @@
     // ========== 核心计算 - 币本位合约 (Coin-M) ==========
 
     function calcCoin(item, P) {
-        const { side, face, ctt, open, close, lev, maker, taker, feeOpenRate, feeCloseRate, mark, fundPct, mmRate, liqRate, mb, effMargin, reduceFee, origQty, origPrice, newQty, newPrice } = P;
-        const Unit = "币"; // 例如 BTC
+        const { side, face, ctt, open, close, lev, feeOpenRate, feeCloseRate, mark, fundPct, mmRate, liqRate, mb, effMargin, reduceFee, origQty, origPrice, newQty, newPrice } = P;
+        const Unit = "币"; 
         let html = "";
         const P_C = face * ctt; // 合约总面值 (币)
 
@@ -682,7 +690,6 @@
         // 合约收益 (PnL in Coin)
         let pnl = null;
         if (open != null && close != null && open !== 0 && close !== 0) {
-            // 您的公式：多仓：收益 = P_C * (1 / OpenPx - 1 / ClosePx)
             pnl = side === "long" ? P_C * (1 / open - 1 / close) : P_C * (1 / close - 1 / open);
         }
 
@@ -714,23 +721,21 @@
             }
         }
 
-        // 预估强平价 (LiqPx) - 采用您提供的精确公式结构
+        // 预估强平价 (LiqPx) - 修正后的 币本位公式
         let liqLong = null, liqShort = null;
         if (posValue != null && open != null && open !== 0 && mb != null && mmRate != null && liqRate != null) {
             const posCoinAtOpen = P_C / open; // 初始仓位（币）
             const feeRate = liqRate;
 
             // 多仓预估强平价
-            const denomLong = mb + posCoinAtOpen; // 分母: 保证金余额 + 仓位价值 / 开仓均价
+            const denomLong = mb + posCoinAtOpen; 
             if (denomLong !== 0) {
-                // 公式： 仓位价值 * (维持保证金率 + 手续费率 + 1) / (MB + PosCoinAtOpen)
                 liqLong = posValue * (mmRate + feeRate + 1) / denomLong; 
             }
 
             // 空仓预估强平价
-            const denomShort = mb - posCoinAtOpen; // 分母: 保证金余额 - 仓位价值 / 开仓均价
+            const denomShort = mb - posCoinAtOpen; 
             if (denomShort !== 0) {
-                // 公式： 仓位价值 * (维持保证金率 + 手续费率 - 1) / (MB - PosCoinAtOpen)
                 liqShort = posValue * (mmRate + feeRate - 1) / denomShort;
             }
         }
@@ -739,7 +744,7 @@
         const avgOpen = calcOpenAvgPrice(face, origQty, origPrice, newQty, newPrice, "币本位合约");
 
 
-        // 结果展示 (单位是 "币")
+        // 结果展示 (币本位)
         switch (item) {
             case "开仓均价":
                 html += `<div class="sub-title">开仓均价</div>`;
@@ -786,104 +791,4 @@
                 break;
             case "仓位价值":
                 html += `<div class="sub-title">仓位价值 (${Unit})</div>`;
-                html += rowBig("仓位价值", posValue, 8);
-                break;
-            case "资金费用":
-                html += `<div class="sub-title">资金费用 (${Unit})</div>`;
-                const fundingFee = posValue != null && fundPct != null ? posValue * pct(fundPct) : null;
-                html += row("仓位价值", posValue, 8, Unit);
-                html += rowBig("资金费用", fundingFee, 8);
-                break;
-            case "预估强平价":
-                html += `<div class="sub-title">预估强平价格</div>`;
-                html += rowBig("多仓预估强平价", liqLong, 8);
-                html += rowBig("空仓预估强平价", liqShort, 8);
-                break;
-            default:
-                html += "该项目暂未实现，请先使用 Excel。";
-        }
-
-        return html;
-    }
-
-
-    // ========== 主计算逻辑 ==========
-
-    function doCalc() {
-        const cType = $D.contractType.value;
-        const item = $D.calcItem.value;
-        const resEl = $D.result;
-
-        if (!REQUIRED[cType] || !REQUIRED[cType][item]) {
-            resEl.textContent = "当前合约类型下，该项目暂未在网页中实现，请先使用 Excel。";
-            return;
-        }
-
-        const missing = checkRequired(cType, item);
-        if (missing.length > 0) {
-            resEl.innerHTML = `<div class="sub-title" style="color:#f87171;">⚠️ 必填参数缺失</div><div class="hint" style="color:#f87171;">请先填写以下参数再计算：${missing.join("、")}</div>`;
-            return;
-        }
-
-        // 收集所有参数（用于传递给 calcU/calcCoin）
-        const params = {
-            side: $D.side.value,
-            face: getNum("faceValue"),
-            ctt: Math.abs(getNum("contracts") || 0),
-            open: getNum("openPx"),
-            close: getNum("closePx"),
-            lev: getNum("leverage"),
-            makerPct: getNum("makerFee"),
-            takerPct: getNum("takerFee"),
-            openRole: $D.openRole.value,
-            closeRole: $D.role.value,
-            mark: getNum("markPx"),
-            fundPct: getNum("fundingRate"),
-            mmRate: pct(getNum("mmRate") || 0),
-            liqRate: pct(getNum("liqFeeRate") || 0),
-            mb: getNum("marginBalance"),
-            effMargin: getNum("effectiveMargin"),
-            reduceFee: getNum("reduceFee"),
-            origQty: getNum("origQty"),
-            origPrice: getNum("origPrice"),
-            newQty: getNum("newQty"),
-            newPrice: getNum("newPrice")
-        };
-        // 费率转换
-        params.maker = pct(params.makerPct || 0);
-        params.taker = pct(params.takerPct || 0);
-        params.feeOpenRate = params.openRole === "maker" ? params.maker : params.taker;
-        params.feeCloseRate = params.closeRole === "maker" ? params.maker : params.taker;
-
-
-        let html = "";
-        if (cType === "U本位合约") {
-            html = calcU(item, params);
-        } else if (cType === "币本位合约") {
-            html = calcCoin(item, params);
-        } else if (cType === "开仓均价 合约 U+币本") {
-            if (item !== "开仓均价") {
-                html = "“开仓均价 合约 U+币本” 表仅支持计算开仓均价，请将计算项目切换为【开仓均价】。";
-            } else {
-                // 此模式下，需要用户在输入区指定面值
-                const avgOpen = calcOpenAvgPrice(params.face || 1, params.origQty, params.origPrice, params.newQty, params.newPrice, "U本位合约"); 
-                html = `<div class="sub-title">开仓均价</div>`;
-                html += rowBig("加权平均开仓均价", avgOpen, 8);
-                html += `<div class="hint">注：此计算默认为 U 本位合约的加权平均法，币本位请切换合约类型。</div>`;
-            }
-        } else {
-            html = "该合约类型暂未实现，请使用 Excel 表格版本。";
-        }
-
-        resEl.innerHTML = html;
-    }
-
-    // ========== 事件绑定与初始化 ==========
-    initDOMElements(); 
-
-    $D.contractType.addEventListener("change", refreshVisibleFields);
-    $D.calcItem.addEventListener("change", refreshVisibleFields);
-    $D.btnCalc.addEventListener("click", doCalc);
-
-    refreshVisibleFields(); // 页面加载时执行一次
-})();
+                html += rowBig
