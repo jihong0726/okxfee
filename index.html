@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>合约清算价格计算器 (浅色主题)</title>
+    <title>合约清算价格计算器 (完整版)</title>
     
     <script type="text/javascript" id="MathJax-script" async
         src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
@@ -38,6 +38,15 @@
             margin-top: 0;
             margin-bottom: 30px;
         }
+        
+        /* 配置区域，用于合约类型和保证金模式 */
+        .config-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px dashed #e9ecef;
+        }
 
         /* 输入组样式 */
         .input-group {
@@ -46,14 +55,15 @@
             flex-direction: column;
         }
 
-        .input-group label {
+        .input-group label, .config-row label {
             font-weight: 600;
             margin-bottom: 8px;
             color: #007bff; /* 宝蓝色标签 */
         }
 
         .input-group input[type="number"],
-        .input-group select {
+        .input-group select,
+        .config-row select {
             padding: 12px;
             border: 1px solid #ced4da; /* 浅边框 */
             border-radius: 8px;
@@ -62,11 +72,25 @@
         }
 
         .input-group input[type="number"]:focus,
-        .input-group select:focus {
+        .input-group select:focus,
+        .config-row select:focus {
             border-color: #007bff;
             box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
             outline: none;
         }
+        
+        /* 针对逐仓/全仓模式下输入项的显示/隐藏 */
+        .mode-specific {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .mode-specific.active {
+            display: flex;
+            opacity: 1;
+        }
+
 
         /* 按钮样式 */
         button {
@@ -85,10 +109,6 @@
 
         button:hover {
             background-color: #218838; /* 鼠标悬停变深 */
-        }
-
-        button:active {
-            transform: translateY(1px);
         }
 
         /* 结果区域样式 */
@@ -128,10 +148,6 @@
             font-size: 24px;
         }
 
-        #effectiveLeverage {
-            color: #007bff; /* 蓝色高亮有效杠杆 */
-        }
-
         /* 公式区域样式 */
         .formula-section {
             margin-top: 30px;
@@ -146,9 +162,64 @@
 
 <div class="container">
     <h1>📝 加密货币合约清算价格计算器</h1>
+    
+    <div class="config-row">
+        <div class="input-group" style="flex: 1;">
+            <label for="contractType">合约类型</label>
+            <select id="contractType">
+                <option value="usdt">U 本位 (USDT-M)</option>
+                <option value="coin">币 本位 (Coin-M)</option>
+            </select>
+        </div>
+        <div class="input-group" style="flex: 1;">
+            <label for="marginMode">保证金模式</label>
+            <select id="marginMode" onchange="toggleMarginInputs()">
+                <option value="isolated">逐仓 (Isolated)</option>
+                <option value="cross">全仓 (Cross)</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="input-group">
+        <label for="direction">仓位方向</label>
+        <select id="direction">
+            <option value="long">做多 (Long)</option>
+            <option value="short">做空 (Short)</option>
+        </select>
+    </div>
+    
     <div class="input-group">
         <label for="entryPrice">开仓价格 ($/币)</label>
         <input type="number" id="entryPrice" placeholder="例如: 30000" value="30000">
+    </div>
+
+    <div class="input-group">
+        <label for="currentMarkPrice">当前标记价格 ($/币)</label>
+        <input type="number" id="currentMarkPrice" placeholder="用于计算浮动盈亏, 例如: 30500" value="30500">
+    </div>
+
+    <div class="input-group">
+        <label for="positionSize">开仓数量 (币)</label>
+        <input type="number" id="positionSize" placeholder="例如: 1" value="1">
+    </div>
+    
+    <div id="isolatedInputs" class="mode-specific active">
+        <div class="input-group">
+            <label for="initialMargin">起始保证金 (USDT/币)</label>
+            <input type="number" id="initialMargin" placeholder="该仓位投入的本金 (默认: 价值/杠杆)" value="1500">
+        </div>
+    </div>
+    
+    <div id="crossInputs" class="mode-specific">
+        <div class="input-group">
+            <label for="accountBalance">账户可用余额 (USDT/币)</label>
+            <input type="number" id="accountBalance" placeholder="全仓下剩余可用于分摊亏损的资金" value="5000">
+        </div>
+    </div>
+    
+    <div class="input-group">
+        <label for="unrealizedPnl">未实现盈亏 (USDT/币)</label>
+        <input type="number" id="unrealizedPnl" placeholder="浮动盈亏，默认根据开仓价和标记价计算" value="0" disabled>
     </div>
 
     <div class="input-group">
@@ -157,31 +228,18 @@
     </div>
 
     <div class="input-group">
-        <label for="positionSize">开仓数量 (币)</label>
-        <input type="number" id="positionSize" placeholder="例如: 1" value="1">
-    </div>
-
-    <div class="input-group">
         <label for="maintenanceMarginRate">维持保证金率 (%)</label>
         <input type="number" id="maintenanceMarginRate" placeholder="例如: 0.5" value="0.5">
     </div>
 
     <div class="input-group">
-        <label for="fee">开仓手续费 (%)</label>
+        <label for="fee">开仓/平仓手续费率 (%)</label>
         <input type="number" id="fee" placeholder="例如: 0.05" value="0.05">
     </div>
 
     <div class="input-group">
         <label for="fundingRate">预计资金费率 (%) (仅作估算)</label>
         <input type="number" id="fundingRate" placeholder="例如: 0.01" value="0.01">
-    </div>
-
-    <div class="input-group">
-        <label for="direction">仓位方向</label>
-        <select id="direction">
-            <option value="long">做多 (Long)</option>
-            <option value="short">做空 (Short)</option>
-        </select>
     </div>
 
     <button onclick="calculateLiquidationPrice()">计算清算价格</button>
@@ -191,116 +249,168 @@
             <p><span class="result-label">清算价格:</span> <span class="result-value" id="liquidationPrice">--</span></p>
         </div>
         <div class="result-box">
-            <p><span class="result-label">起始保证金:</span> <span class="result-value" id="initialMargin">--</span></p>
+            <p><span class="result-label">总保证金 (含 P&L):</span> <span class="result-value" id="totalMargin">--</span></p>
         </div>
         <div class="result-box">
-            <p><span class="result-label">有效杠杆:</span> <span class="result-value" id="effectiveLeverage">--</span></p>
+            <p><span class="result-label">维持保证金要求:</span> <span class="result-value" id="maintenanceMarginRequired">--</span></p>
         </div>
         <div class="result-box">
-            <p><span class="result-label">开仓价值 (本金 x 杠杆):</span> <span class="result-value" id="positionValue">--</span></p>
-        </div>
-        <div class="result-box">
-            <p><span class="result-label">可承受的跌幅/涨幅:</span> <span class="result-value" id="tolerableChange">--</span></p>
+            <p><span class="result-label">距离清算百分比:</span> <span class="result-value" id="distanceToLiquidation">--</span></p>
         </div>
     </div>
 
     <div class="formula-section">
-        <p>使用的简化计算公式 (不含保险基金和穿仓平摊):</p>
-        <p>初始保证金率: $IMR = 1 / \text{杠杆倍数}$</p>
-        <p>维持保证金率: $MMR = \text{输入值} / 100$</p>
-        <p>开仓总成本 (USDT): $Cost = (\text{开仓价格} \times \text{开仓数量}) / \text{杠杆} + \text{手续费} + \text{资金费}$</p>
-        <p>做多清算价格: $$\text{清算价格} = \text{开仓价格} \times \left(1 - \frac{IMR - MMR + \text{额外成本比}}{\text{开仓数量} \times (1 - MMR)}\right)$$</p>
-        <p>做空清算价格: $$\text{清算价格} = \text{开仓价格} \times \left(1 + \frac{IMR - MMR + \text{额外成本比}}{\text{开仓数量} \times (1 + MMR)}\right)$$</p>
-        
-        <p style="margin-top: 15px; font-style: italic; color: #6c757d;">版本 V2.0.1 - 合约核心功能实现 (已移至最下方)</p>
+        <p>使用的计算公式 (基于 **USDT-M 逐仓** 简化):</p>
+        <p>可用保证金 = 起始保证金 + 未实现盈亏 - 资金费 - 平仓手续费</p>
+        <p>清算时盈亏 = 维持保证金要求 - 总保证金</p>
+        <p>清算价格最终由清算时盈亏 $ / \text{合约价值变动}$ 决定。</p>
+        <p style="margin-top: 15px; font-style: italic; color: #6c757d;">版本 V2.0.2 - 完整合约功能实现</p>
     </div>
 </div>
 
 <script>
     /**
-     * 合约清算价格计算函数
+     * 切换保证金模式时，显示/隐藏对应的输入框
+     */
+    function toggleMarginInputs() {
+        const mode = document.getElementById('marginMode').value;
+        const isolatedDiv = document.getElementById('isolatedInputs');
+        const crossDiv = document.getElementById('crossInputs');
+
+        if (mode === 'isolated') {
+            isolatedDiv.classList.add('active');
+            crossDiv.classList.remove('active');
+        } else { // cross
+            crossDiv.classList.add('active');
+            isolatedDiv.classList.remove('active');
+        }
+        // 模式切换后重新计算，以更新默认值
+        calculateLiquidationPrice(); 
+    }
+
+    /**
+     * 计算未实现盈亏 (Unrealized P&L)
+     * @param {number} entryPrice - 开仓价格
+     * @param {number} markPrice - 当前标记价格
+     * @param {number} positionSize - 仓位数量
+     * @param {string} direction - 仓位方向 ('long'/'short')
+     * @param {string} contractType - 合约类型 ('usdt'/'coin')
+     * @returns {number} 未实现盈亏金额
+     */
+    function calculatePnl(entryPrice, markPrice, positionSize, direction, contractType) {
+        if (contractType === 'usdt') {
+            // U本位: 盈亏 = (平仓价 - 开仓价) * 数量 * 方向
+            const diff = direction === 'long' ? (markPrice - entryPrice) : (entryPrice - markPrice);
+            return diff * positionSize;
+        } else {
+            // 币本位: 盈亏 = (1/开仓价 - 1/平仓价) * 数量 * 合约乘数
+            // 简化为 (1/开仓价 - 1/标记价) * 数量 (USDT计价)
+            const diff = direction === 'long' ? (1 / entryPrice - 1 / markPrice) : (1 / markPrice - 1 / entryPrice);
+            return diff * positionSize * markPrice * entryPrice; // 近似计算，实际应根据合约面值
+        }
+    }
+
+
+    /**
+     * 核心清算价格计算函数
      */
     function calculateLiquidationPrice() {
-        // 1. 获取输入值并转换为数字 (使用parseFloat处理小数)
-        const entryPrice = parseFloat(document.getElementById('entryPrice').value);
-        const leverage = parseFloat(document.getElementById('leverage').value);
-        const positionSize = parseFloat(document.getElementById('positionSize').value);
-        // 将百分比输入转换为小数形式
-        const maintenanceMarginRate = parseFloat(document.getElementById('maintenanceMarginRate').value) / 100;
-        const feeRate = parseFloat(document.getElementById('fee').value) / 100;
-        const fundingRate = parseFloat(document.getElementById('fundingRate').value) / 100;
+        // 1. 获取输入值
+        const contractType = document.getElementById('contractType').value;
+        const marginMode = document.getElementById('marginMode').value;
         const direction = document.getElementById('direction').value;
+        
+        const entryPrice = parseFloat(document.getElementById('entryPrice').value);
+        const currentMarkPrice = parseFloat(document.getElementById('currentMarkPrice').value);
+        const positionSize = parseFloat(document.getElementById('positionSize').value);
+        const leverage = parseFloat(document.getElementById('leverage').value);
+
+        const mmRate = parseFloat(document.getElementById('maintenanceMarginRate').value) / 100;
+        const totalFeeRate = (parseFloat(document.getElementById('fee').value) * 2 + parseFloat(document.getElementById('fundingRate').value)) / 100; // 开+平手续费 + 资金费
 
         // 2. 基本校验
-        if (!entryPrice || !leverage || !positionSize || isNaN(maintenanceMarginRate) || isNaN(feeRate) || isNaN(fundingRate) || leverage <= 0) {
-            alert('请确保所有输入项都已填写有效数字，且杠杆大于0。');
+        if (!entryPrice || !currentMarkPrice || !positionSize || !leverage || isNaN(mmRate)) {
+            document.getElementById('liquidationPrice').textContent = "数据不完整";
             return;
         }
-
-        // 3. 计算关键参数
         
-        // (1) 开仓总价值 (合约价值)
+        // 3. 计算未实现盈亏 (P&L) 并更新输入框
+        const unrealizedPnl = calculatePnl(entryPrice, currentMarkPrice, positionSize, direction, contractType);
+        document.getElementById('unrealizedPnl').value = unrealizedPnl.toFixed(4);
+
+
+        // 4. 计算保证金基数
+        
+        // (1) 名义仓位价值 (Value) - 统一以 USD 计价
         const positionValue = entryPrice * positionSize;
         
-        // (2) 初始保证金率 (IMR)
-        // IMR = 1 / 杠杆
-        const initialMarginRate = 1 / leverage;
-
-        // (3) 起始保证金 (Initial Margin) - 实际投入的本金
-        // Initial Margin = 开仓价值 / 杠杆
-        const initialMargin = positionValue / leverage;
-
-        // (4) 额外成本 (手续费和资金费 - 基于开仓价值计算)
-        // 简化处理：将开仓手续费和一期资金费视为开仓时的额外成本
-        const totalExtraCost = positionValue * (feeRate + fundingRate);
+        // (2) 维持保证金 (MMR) - 触发清算的门槛
+        // MMR = 标记价格 * 仓位数量 * 维持保证金率
+        const maintenanceMarginRequired = currentMarkPrice * positionSize * mmRate;
         
-        // (5) 总保证金 (用于计算盈亏的本金)
-        const totalMargin = initialMargin; 
+        // (3) 总可用保证金 (Total Equity) - 用于抵抗亏损的资金
+        let totalEquity;
+        let initialMargin;
 
-        // 4. 清算价格计算 (简化公式)
-
-        let liquidationPrice;
-        let tolerableChangePercentage;
-
-        // 用于计算清算价格的“总成本/价值比” (包括手续费等额外成本)
-        const costFactor = initialMarginRate - maintenanceMarginRate;
-
-        // 额外成本占合约价值的比率
-        const extraCostRatio = totalExtraCost / positionValue;
-
-        if (direction === 'long') {
-            // 做多: 价格下跌导致清算
-            // 清算价格 = 开仓价格 * (1 - (初始保证金率 - 维持保证金率 + 额外成本比) / (1 - 维持保证金率))
-            liquidationPrice = entryPrice * (1 - (costFactor + extraCostRatio) / (1 - maintenanceMarginRate));
-            
-            // 可承受的跌幅百分比
-            tolerableChangePercentage = (1 - (liquidationPrice / entryPrice)) * 100;
-
-        } else { // direction === 'short'
-            // 做空: 价格上涨导致清算
-            // 清算价格 = 开仓价格 * (1 + (初始保证金率 - 维持保证金率 + 额外成本比) / (1 + 维持保证金率))
-            liquidationPrice = entryPrice * (1 + (costFactor + extraCostRatio) / (1 + maintenanceMarginRate));
-
-            // 可承受的涨幅百分比
-            tolerableChangePercentage = ((liquidationPrice / entryPrice) - 1) * 100;
+        if (marginMode === 'isolated') {
+            // 逐仓模式: 投入的起始保证金 + 未实现盈亏 - 成本
+            initialMargin = parseFloat(document.getElementById('initialMargin').value) || (positionValue / leverage);
+            totalEquity = initialMargin + unrealizedPnl;
+        } else { // cross (全仓)
+            // 全仓模式: 账户可用余额 + 所有仓位的初始保证金 + 所有仓位的未实现盈亏
+            // 简化为：账户可用余额 + 当前仓位的起始保证金 (Value/Leverage) + 当前仓位的未实现盈亏
+            const accountBalance = parseFloat(document.getElementById('accountBalance').value);
+            initialMargin = positionValue / leverage;
+            totalEquity = accountBalance + initialMargin + unrealizedPnl;
         }
 
-        // 5. 计算有效杠杆 (基于实际投入本金)
-        // 有效杠杆 = 开仓总价值 / 实际投入本金
-        const effectiveLeverage = positionValue / totalMargin; 
+        // 5. 核心清算价格计算
+
+        // 清算需要的亏损金额 (LossNeeded)
+        // LossNeeded = 总可用保证金 - 维持保证金要求 - 交易成本 (手续费+资金费)
+        const totalCost = positionValue * totalFeeRate;
+        const lossNeeded = totalEquity - maintenanceMarginRequired - totalCost;
+        
+        let liquidationPrice;
+        let percentageChange;
+
+        if (contractType === 'usdt') {
+            // U本位: PnL = (P_清算 - P_开仓) * Size
+            // 变动价格 = LossNeeded / Size
+            const priceChange = lossNeeded / positionSize;
+
+            if (direction === 'long') {
+                // 清算价格 = P_开仓 - 变动价格
+                liquidationPrice = entryPrice - priceChange;
+                percentageChange = (entryPrice - liquidationPrice) / entryPrice * 100;
+            } else { // short
+                // 清算价格 = P_开仓 + 变动价格
+                liquidationPrice = entryPrice + priceChange;
+                percentageChange = (liquidationPrice - entryPrice) / entryPrice * 100;
+            }
+        } else {
+            // 币本位: PnL = Size * (1/P_开仓 - 1/P_清算) * 合约乘数
+            // 币本位计算非常复杂，这里采用简化 U本位逻辑，但建议用户在币本位下使用交易所数据
+            // 警告: 币本位清算价计算因合约面值和乘数不同而复杂，此处为近似值
+            const priceChange = lossNeeded / positionSize;
+            if (direction === 'long') {
+                liquidationPrice = entryPrice - priceChange;
+                percentageChange = (entryPrice - liquidationPrice) / entryPrice * 100;
+            } else {
+                liquidationPrice = entryPrice + priceChange;
+                percentageChange = (liquidationPrice - entryPrice) / entryPrice * 100;
+            }
+        }
         
         // 6. 结果输出
+        const currencySymbol = contractType === 'usdt' ? 'USDT' : '币';
+        
         document.getElementById('liquidationPrice').textContent = liquidationPrice.toFixed(4) + ' $';
-        document.getElementById('initialMargin').textContent = totalMargin.toFixed(2) + ' $';
-        document.getElementById('positionValue').textContent = positionValue.toFixed(2) + ' $';
-        document.getElementById('effectiveLeverage').textContent = effectiveLeverage.toFixed(2) + ' X';
+        document.getElementById('totalMargin').textContent = totalEquity.toFixed(2) + ' ' + currencySymbol;
+        document.getElementById('maintenanceMarginRequired').textContent = maintenanceMarginRequired.toFixed(2) + ' ' + currencySymbol;
 
-        // 显示可承受的变动
-        const changeText = direction === 'long' 
-            ? `下跌 ${Math.abs(tolerableChangePercentage).toFixed(2)} %`
-            : `上涨 ${Math.abs(tolerableChangePercentage).toFixed(2)} %`;
-            
-        document.getElementById('tolerableChange').textContent = changeText;
+        const changeDirection = direction === 'long' ? "下跌" : "上涨";
+        document.getElementById('distanceToLiquidation').textContent = `${changeDirection} ${Math.abs(percentageChange).toFixed(2)} %`;
         
         // 确保 MathJax 重新渲染公式
         if (typeof MathJax !== 'undefined') {
@@ -308,8 +418,11 @@
         }
     }
 
-    // 页面加载完成后自动计算一次 (使用默认值)
-    document.addEventListener('DOMContentLoaded', calculateLiquidationPrice);
+    // 页面加载完成后自动执行
+    document.addEventListener('DOMContentLoaded', () => {
+        toggleMarginInputs(); // 初始化输入框显示
+        calculateLiquidationPrice(); // 使用默认值计算
+    });
 </script>
 
 </body>
