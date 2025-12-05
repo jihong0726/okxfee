@@ -1,3 +1,4 @@
+css = r"""
 *,
 *::before,
 *::after {
@@ -8,365 +9,421 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-  background: radial-gradient(circle at top left, #162447, #020617 55%);
-  color: #e5f0ff;
 }
 
 body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "PingFang SC", "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top left, #1f2937 0, #020617 46%, #000 100%);
+  color: #e5e7eb;
+}
+
+.app {
   display: flex;
-  justify-content: center;
-  align-items: stretch;
+  min-height: 100vh;
+  padding: 24px;
+  gap: 24px;
 }
 
-.app-shell {
-  width: 100%;
-  max-width: 1440px;
-  height: 100vh;
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  background: rgba(10, 18, 40, 0.9);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
-  border-radius: 24px;
-  overflow: hidden;
-  border: 1px solid rgba(90, 140, 255, 0.3);
-}
-
-/* 左侧栏 */
+/* Sidebar */
 
 .sidebar {
-  background: radial-gradient(circle at top left, #0f172a, #020617);
+  width: 320px;
   padding: 20px 20px 16px;
+  border-radius: 24px;
+  background: radial-gradient(circle at top left, rgba(59,130,246,0.28), transparent 55%),
+              linear-gradient(145deg, #020617, #020617 40%, #020617 100%);
+  box-shadow:
+    0 18px 60px rgba(15,23,42,0.85),
+    0 0 0 1px rgba(148,163,184,0.06);
   display: flex;
   flex-direction: column;
   gap: 16px;
-  border-right: 1px solid rgba(75, 85, 99, 0.7);
 }
 
-.sidebar-header {
-  padding: 8px 4px 12px;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
+.sidebar-badge {
+  align-self: flex-start;
   padding: 4px 10px;
   border-radius: 999px;
-  font-size: 12px;
-  color: #9ca3ff;
-  background: rgba(37, 99, 235, 0.12);
-  border: 1px solid rgba(129, 140, 248, 0.6);
-  margin-bottom: 8px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #e5e7eb;
+  background: rgba(15,23,42,0.85);
+  border: 1px solid rgba(148,163,184,0.6);
 }
 
-.app-title {
-  font-size: 24px;
-  margin: 0 0 6px;
-}
-
-.app-desc {
+.sidebar-title {
   margin: 0;
-  font-size: 12px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.sidebar-desc {
+  margin: 0;
+  font-size: 13px;
   line-height: 1.6;
-  color: #a5b4fc;
+  color: #cbd5f5;
 }
 
 .sidebar-section-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #93c5fd;
-  margin: 4px 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9ca3af;
 }
 
-.area-list {
+.zone-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 10px;
 }
 
-.area-item {
-  text-align: left;
-  background: rgba(15, 23, 42, 0.9);
+.zone-card {
+  padding: 12px 14px;
   border-radius: 16px;
-  padding: 10px 12px;
-  border: 1px solid rgba(55, 65, 81, 0.8);
-  color: #e5f0ff;
-  cursor: pointer;
+  background: radial-gradient(circle at top left, rgba(59,130,246,0.25), transparent 55%),
+              rgba(15,23,42,0.88);
+  border: 1px solid rgba(148,163,184,0.48);
+  cursor: default;
   transition: all 0.18s ease-out;
 }
 
-.area-item:hover {
-  border-color: rgba(96, 165, 250, 0.9);
-  background: radial-gradient(circle at top left, #111827, #020617);
+.zone-card--active {
+  box-shadow: 0 0 0 1px rgba(59,130,246,0.7), 0 0 40px rgba(59,130,246,0.45);
+  background: radial-gradient(circle at top left, rgba(59,130,246,0.5), transparent 55%),
+              linear-gradient(135deg, #0b1120, #020617);
 }
 
-.area-item-active {
-  border-color: #38bdf8;
-  background: radial-gradient(circle at top left, #1d4ed8, #020617);
-  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.5), 0 18px 40px rgba(15, 118, 210, 0.5);
+.zone-card--disabled {
+  opacity: 0.58;
 }
 
-.area-title {
+.zone-name {
   font-size: 15px;
-  margin-bottom: 2px;
+  font-weight: 600;
+  margin-bottom: 4px;
 }
 
-.area-sub {
-  font-size: 11px;
-  color: #9ca3af;
+.zone-desc {
+  font-size: 12px;
+  color: #a5b4fc;
+}
+
+.zone-tag {
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,0.7);
+  color: #e5e7eb;
 }
 
 .sidebar-tip {
   margin-top: auto;
-  padding-top: 10px;
-  border-top: 1px dashed rgba(75, 85, 99, 0.8);
+  padding: 10px 12px;
+  border-radius: 14px;
   font-size: 11px;
-  line-height: 1.6;
+  line-height: 1.5;
   color: #9ca3af;
+  background: rgba(15,23,42,0.9);
+  border: 1px dashed rgba(148,163,184,0.6);
 }
 
-/* 右侧主区域 */
+/* Main */
 
-.main-panel {
+.main {
+  flex: 1;
+  border-radius: 24px;
   padding: 18px 20px 18px;
+  background:
+    radial-gradient(circle at top left, rgba(59,130,246,0.22), transparent 50%),
+    radial-gradient(circle at bottom right, rgba(56,189,248,0.18), transparent 55%),
+    linear-gradient(145deg, #020617, #020617 60%, #000 100%);
+  box-shadow:
+    0 18px 60px rgba(15,23,42,0.9),
+    0 0 0 1px rgba(148,163,184,0.12);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 18px;
 }
 
-.main-header-title {
-  font-size: 18px;
+.main-header {
+  padding: 4px 4px 10px;
+}
+
+.now-zone {
+  font-size: 15px;
   font-weight: 600;
 }
 
-.main-header-sub {
-  font-size: 12px;
-  color: #c4d3ff;
-  margin-top: 4px;
+.now-zone span {
+  color: #bfdbfe;
 }
 
-/* 二级 tab */
+.now-zone-desc {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.calc-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 
 .calc-tabs {
-  margin-top: 10px;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
 .calc-tab {
+  padding: 6px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(75, 85, 99, 0.9);
-  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(148,163,184,0.55);
+  background: rgba(15,23,42,0.7);
   color: #e5e7eb;
   font-size: 12px;
-  padding: 4px 12px;
   cursor: pointer;
   transition: all 0.16s ease-out;
 }
 
 .calc-tab:hover {
-  border-color: rgba(96, 165, 250, 0.9);
-  background: rgba(30, 64, 175, 0.9);
+  border-color: rgba(129,140,248,0.95);
+  box-shadow: 0 0 20px rgba(79,70,229,0.25);
 }
 
-.calc-tab-active {
-  border-color: #38bdf8;
-  background: linear-gradient(90deg, #1d4ed8, #06b6d4);
+.calc-tab.active {
+  background: radial-gradient(circle at top left, rgba(129,140,248,0.9), rgba(30,64,175,0.85));
+  border-color: rgba(191,219,254,1);
   color: #f9fafb;
-  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.5);
+  box-shadow:
+    0 0 0 1px rgba(191,219,254,0.9),
+    0 16px 40px rgba(37,99,235,0.45);
 }
 
-/* 输入 + 结果 布局 */
+/* Panels */
 
-.calc-layout {
-  margin-top: 10px;
+.calc-panels {
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   gap: 14px;
-  min-height: 0;
+  align-items: stretch;
 }
 
-.input-panel,
-.result-panel {
-  background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.98), rgba(2, 6, 23, 0.98));
-  border-radius: 20px;
-  padding: 14px 16px 12px;
-  border: 1px solid rgba(55, 65, 81, 0.85);
-  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.8);
+.panel {
+  border-radius: 18px;
+  padding: 14px 16px 14px;
+  background: rgba(15,23,42,0.9);
+  border: 1px solid rgba(148,163,184,0.55);
+  box-shadow: inset 0 0 0 1px rgba(15,23,42,0.8);
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
 .panel-title {
-  font-size: 15px;
   margin: 0;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .panel-subtitle {
+  margin: 4px 0 10px;
   font-size: 12px;
-  margin: 0;
   color: #9ca3af;
 }
 
-.panel-footnote {
-  font-size: 11px;
-  color: #9ca3af;
+.form-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   margin-top: 4px;
 }
 
-/* 表单 */
-
-.form-fields {
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.form-row {
+.field-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(15, 23, 42, 0.9);
-  border-radius: 999px;
-  padding: 4px 10px;
-  border: 1px solid rgba(55, 65, 81, 0.9);
 }
 
-.form-label {
+.field-label {
+  flex: 0 0 130px;
   font-size: 12px;
   color: #e5e7eb;
-  min-width: 96px;  /* 名称固定宽度，右边输入框对齐 */
 }
 
-.form-input {
+.field-input-wrap {
   flex: 1;
-  background: transparent;
+  display: flex;
+  align-items: center;
+  background: radial-gradient(circle at top left, rgba(30,64,175,0.3), transparent 60%);
+  border-radius: 999px;
+  border: 1px solid rgba(55,65,81,0.9);
+  padding-inline: 10px;
+}
+
+.field-input {
+  flex: 1;
   border: none;
-  color: #f9fafb;
-  font-size: 13px;
+  background: transparent;
+  color: #e5e7eb;
+  font-size: 12px;
+  padding: 6px 0;
   outline: none;
 }
 
-.form-input::placeholder {
+.field-input::placeholder {
   color: #6b7280;
 }
 
-.form-unit {
+.field-input:-webkit-autofill {
+  box-shadow: 0 0 0 30px #020617 inset;
+  -webkit-text-fill-color: #e5e7eb;
+}
+
+.field-unit {
+  margin-left: 4px;
   font-size: 12px;
   color: #9ca3af;
 }
 
-/* 按钮 */
-
 .form-actions {
-  margin-top: 10px;
   display: flex;
+  justify-content: flex-end;
   gap: 8px;
+  margin-top: 10px;
 }
 
 .btn {
-  min-width: 90px;
-  padding: 6px 14px;
   border-radius: 999px;
-  border: 1px solid rgba(55, 65, 81, 0.9);
-  background: rgba(15, 23, 42, 0.9);
-  color: #e5e7eb;
-  font-size: 13px;
+  padding: 6px 14px;
+  font-size: 12px;
   cursor: pointer;
-  transition: all 0.15s ease-out;
-}
-
-.btn:hover {
-  border-color: rgba(96, 165, 250, 0.9);
-  background: rgba(30, 64, 175, 0.9);
+  border: 1px solid transparent;
+  transition: all 0.16s ease-out;
 }
 
 .btn-primary {
-  background: linear-gradient(90deg, #2563eb, #06b6d4);
-  border-color: transparent;
+  background: radial-gradient(circle at top left, rgba(59,130,246,0.9), rgba(37,99,235,0.95));
   color: #f9fafb;
-  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(191,219,254,0.6),
+    0 12px 32px rgba(37,99,235,0.65);
 }
 
 .btn-primary:hover {
   filter: brightness(1.05);
 }
 
-/* 结果区 */
+.btn-secondary {
+  background: rgba(15,23,42,0.9);
+  color: #e5e7eb;
+  border-color: rgba(148,163,184,0.9);
+}
 
-.result-subtitle {
+.btn-secondary:hover {
+  background: rgba(31,41,55,0.95);
+}
+
+.form-tip {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* Result panel */
+
+.result-sub {
   font-size: 12px;
   color: #9ca3af;
 }
 
-.result-textarea {
-  margin-top: 6px;
-  flex: 0 0 120px;
+.result-main {
+  margin-top: 8px;
+  min-height: 90px;
+  max-height: 140px;
   resize: vertical;
-  min-height: 110px;
-  max-height: 220px;
   width: 100%;
-  border-radius: 14px;
-  border: 1px solid rgba(55, 65, 81, 0.9);
-  background: radial-gradient(circle at top left, #0b1220, #020617);
-  color: #e5e7eb;
-  font-size: 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(55,65,81,0.9);
+  background: radial-gradient(circle at top left, rgba(30,64,175,0.35), transparent 55%),
+              rgba(15,23,42,0.95);
   padding: 8px 10px;
+  font-size: 12px;
+  color: #e5e7eb;
   outline: none;
 }
 
-.result-textarea::placeholder {
+.result-main::placeholder {
   color: #6b7280;
 }
 
-.formula-wrapper {
+.formula-block {
   margin-top: 10px;
-  padding: 8px 10px;
-  border-radius: 14px;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px dashed rgba(75, 85, 99, 0.9);
 }
 
 .formula-title {
   font-size: 12px;
-  color: #c4d3ff;
+  color: #9ca3af;
   margin-bottom: 4px;
 }
 
-.formula-line {
+.formula-text {
+  border-radius: 12px;
+  border: 1px dashed rgba(55,65,81,0.9);
+  background: rgba(15,23,42,0.95);
+  padding: 8px 10px;
   font-size: 12px;
-  color: #9ca3af;
-  line-height: 1.6;
+  color: #e5e7eb;
+  white-space: pre-wrap;
+  word-break: break-all;
+  min-height: 54px;
 }
 
-.formula-line + .formula-line {
+/* Footer */
+
+.main-footer {
+  padding-top: 4px;
+  font-size: 11px;
+  color: #6b7280;
+  border-top: 1px solid rgba(55,65,81,0.9);
   margin-top: 4px;
 }
 
-.version-text {
-  margin-top: auto;
-  font-size: 11px;
-  color: #6b7280;
-  text-align: right;
+.footer-text {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-/* 响应式：窄屏改成上下排列 */
+/* Responsive */
 
-@media (max-width: 1100px) {
-  .app-shell {
-    grid-template-columns: 1fr;
-    height: auto;
+@media (max-width: 1080px) {
+  .app {
+    flex-direction: column;
+    padding: 12px;
   }
+
   .sidebar {
-    border-right: none;
-    border-bottom: 1px solid rgba(55, 65, 81, 0.9);
+    width: 100%;
+    flex-direction: column;
   }
-  .calc-layout {
-    grid-template-columns: 1fr;
+
+  .main {
+    width: 100%;
+  }
+
+  .calc-panels {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
+"""
+print(len(css.splitlines()))
