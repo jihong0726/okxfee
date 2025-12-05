@@ -1,16 +1,16 @@
 // u_perp_calc_final.js
-// 合约计算器 (U本位/币本位 - 修正公式版，修复计算错误并优化UI)
+// 合约计算器 (U本位/币本位 - 最终修复计算错误，优化参数收集健壮性)
 
 (function () {
-    // ========== 样式 (优化颜色搭配) ==========
+    // ========== 样式 (保持上次的优化颜色搭配) ==========
     const style = document.createElement("style");
     style.textContent = `
     *{box-sizing:border-box;}
     body{
       margin:0;
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      background:#0a0a0a; /* 更深的背景 */
-      color:#e0e0e0; /* 默认文本颜色 */
+      background:#0a0a0a;
+      color:#e0e0e0;
       font-size:13px;
     }
     .wrap{
@@ -33,7 +33,7 @@
     .top-row{
       display:flex;
       flex-wrap:wrap;
-      gap:16px; /* 增大间距 */
+      gap:16px;
       margin-bottom:20px;
       align-items:center;
     }
@@ -47,22 +47,22 @@
       padding:8px 14px;
       border-radius:6px;
       border:1px solid #303030;
-      background:#1a1a1a; /* 输入框背景 */
+      background:#1a1a1a;
       color:#ffffff;
       font-size:14px;
-      appearance: none; /* 移除默认箭头 */
+      appearance: none;
       -webkit-appearance: none;
     }
 
     .row-2col{
       display:grid;
       grid-template-columns: 1.1fr 0.9fr;
-      gap:24px; /* 增大卡片间距 */
+      gap:24px;
       align-items:flex-start;
     }
 
     .card{
-      background:#181818; /* 卡片背景 */
+      background:#181818;
       border-radius:12px;
       padding:20px;
       border:1px solid #333333;
@@ -71,21 +71,21 @@
       font-size:16px;
       font-weight:700;
       margin-bottom:10px;
-      color:#4FC3F7; /* 科技蓝标题 */
+      color:#4FC3F7;
     }
     .block-title{
       font-size:14px;
       font-weight:600;
       margin:15px 0 8px;
       color:#bdbdbd;
-      border-left:3px solid #4FC3F7; /* 左侧强调条 */
+      border-left:3px solid #4FC3F7;
       padding-left:10px;
     }
 
     .grid{
       display:grid;
       grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-      gap:12px; /* 增大输入间距 */
+      gap:12px;
     }
     .field{
       display:flex;
@@ -109,7 +109,7 @@
       color:#616161;
     }
     input:focus,select.param:focus{
-      border-color:#4FC3F7; /* 聚焦高亮 */
+      border-color:#4FC3F7;
       box-shadow:0 0 0 1px #4FC3F7;
     }
 
@@ -122,7 +122,7 @@
       cursor:pointer;
       font-size:15px;
       font-weight:700;
-      background:linear-gradient(135deg, #00BCD4, #4FC3F7); /* 蓝色渐变按钮 */
+      background:linear-gradient(135deg, #00BCD4, #4FC3F7);
       color:#0a0a0a;
       transition: background 0.3s ease;
     }
@@ -176,7 +176,7 @@
     }
     .row-item.big span:last-child{
       font-size:20px;
-      color:#00BCD4; /* 结果高亮色 */
+      color:#00BCD4;
     }
 
     .hint{
@@ -187,7 +187,7 @@
       padding: 0 10px;
     }
     .hint-error {
-        color: #FF5252 !important; /* 错误提示红色 */
+        color: #FF5252 !important;
     }
 
     @media(max-width:900px){
@@ -425,16 +425,37 @@
     function initDOMElements() {
         const allIds = ["contractType", "calcItem", "side", "faceValue", "contracts", "openPx", "closePx", "leverage", "makerFee", "takerFee", "openRole", "closeRole", "liqFeeRate", "markPx", "fundingRate", "mmRate", "marginBalance", "effectiveMargin", "reduceFee", "origQty", "origPrice", "newQty", "newPrice", "btnCalc", "result", "hintText"];
         allIds.forEach(id => {
-            $D[id] = $(id);
+            // 确保 $D 对象中存储了 DOM 引用，如果不存在则为 null
+            $D[id] = $(id); 
         });
     }
 
 
     // ========== 工具函数 ==========
 
+    /** 
+     * 从输入框或选择框获取值，并处理为数字或字符串。
+     * 优化：如果元素不存在，则返回 null。
+     */
+    function getVal(id) {
+        const el = $D[id];
+        if (!el) return null; // 如果元素不存在，立即返回 null
+        
+        let v = el.value.trim();
+        if (el.tagName === "INPUT" || el.classList.contains("param")) {
+            return v; // 对于 select 和 string inputs，返回字符串
+        }
+        return v;
+    }
+
+    /** 
+     * 从输入框获取数字，处理逗号和空值。
+     * 优化：如果元素不存在，则返回 null。
+     */
     function getNum(id) {
         const el = $D[id];
-        if (!el) return null;
+        if (!el) return null; // 如果元素不存在，立即返回 null
+        
         let v = el.value.trim();
         if (!v) return null;
         v = v.replace(/,/g, "").replace(/，/g, "");
@@ -465,12 +486,10 @@
         if (totalQty === 0) return null;
         
         if (cType === "币本位合约") {
-            // 币本位：调和平均价
             const totalValueTerm = (face * origQty / origPrice) + (face * newQty / newPrice);
             if (totalValueTerm === 0) return null;
             return (face * totalQty) / totalValueTerm;
         } else {
-            // U 本位：加权平均价
             return (origQty * origPrice + newQty * newPrice) / totalQty;
         }
     }
@@ -479,6 +498,7 @@
     // ========== 界面交互逻辑 ==========
 
     function refreshVisibleFields() {
+        // ... (保持不变)
         const cType = $D.contractType.value;
         const item = $D.calcItem.value;
         const requiredFields = (REQUIRED[cType] && REQUIRED[cType][item]) || [];
@@ -487,7 +507,6 @@
         document.querySelectorAll("[data-field]").forEach(div => {
             const id = div.getAttribute("data-field");
             const isRequired = needSet.has(id);
-            // 确保 side 在需要计算 PnL, 收益率, 强平价等时显示
             const isSideRequired = (id === 'side' && requiredFields.length > 0 && ['合约收益', '收益率', '预估强平价', '维持保证金率'].includes(item));
             
             div.style.display = (isRequired || isSideRequired) ? "flex" : "none";
@@ -520,58 +539,53 @@
     }
 
     function checkRequired(contractType, item) {
+        // ... (保持不变)
         const req = (REQUIRED[contractType] && REQUIRED[contractType][item]) || [];
         const missing = [];
         req.forEach(id => {
             const el = $D[id];
             if (!el) return;
-            // 检查输入框值
-            if (el.tagName === "INPUT") {
+            if (el.tagName === "INPUT" || el.tagName === "SELECT") {
                 const v = el.value.trim();
                 if (!v) missing.push(FIELD_LABELS[id] || id);
             }
-            // 对于 select，我们假设它们总是有值，无需检查
         });
         return missing;
     }
 
 
-    // ========== 核心计算 - U 本位合约 (USDT-M) ==========
+    // ========== 核心计算函数 (calcU, calcCoin) 保持不变 ==========
+    // ...
 
     function calcU(item, P) {
         const { side, face, ctt, open, close, lev, feeOpenRate, feeCloseRate, mark, fundPct, mmRate, liqRate, mb, effMargin, reduceFee, origQty, origPrice, newQty, newPrice } = P;
+        // ... (内部逻辑保持不变)
         const Unit = "USDT";
         let html = "";
-        const P_C = face * ctt; // 合约总面值 (币)
+        const P_C = face * ctt; 
 
-        // 合约收益 (PnL in USDT)
         let pnl = null;
         if (open != null && close != null) {
             pnl = side === "long" ? P_C * (close - open) : P_C * (open - close);
         }
 
-        // 初始保证金 (IM in USDT)
         let initMargin = null;
         if (open != null && lev != null && lev !== 0) {
             initMargin = P_C * open / lev;
         }
 
-        // 仓位价值 (Value in USDT)
         const positionValue_mark = mark != null ? P_C * mark : null;
 
-        // 手续费 (Fee in USDT)
         let feeOpen = null, feeClose = null, feeTotal = null;
         if (open != null) feeOpen = P_C * open * feeOpenRate;
         if (close != null) feeClose = P_C * close * feeCloseRate;
         if (feeOpen != null || feeClose != null) feeTotal = (feeOpen || 0) + (feeClose || 0);
 
-        // 维持保证金 (MM in USDT)
         let maintMargin = null;
         if (positionValue_mark != null && mmRate != null) {
             maintMargin = positionValue_mark * mmRate;
         }
 
-        // 维持保证金率 (单币种全仓)
         let marginRatioSingle = null;
         if (mb != null && pnl != null && positionValue_mark != null && mmRate != null) {
             const liqFee = pct(getNum("takerFee") || 0); 
@@ -581,31 +595,23 @@
             }
         }
 
-        // 预估强平价 (LiqPx) - 修正后的 U本位公式
         let liqLong = null, liqShort = null;
         if (open != null && mb != null && mmRate != null && liqRate != null) {
-            const pos = P_C; // 面值 * 张数 (USDT计价仓位数量)
+            const pos = P_C; 
             
-            // 多仓预估强平价 (多仓 LiqPx < OpenPx)
             const denomLong = pos * (1 - mmRate - liqRate); 
             if (denomLong !== 0) {
-                // 公式： (面值*张数 * 开仓均价 - 保证金余额) / (面值*张数 * (1 - MMR - LiqR))
                 liqLong = (pos * open - mb) / denomLong; 
             }
             
-            // 空仓预估强平价 (空仓 LiqPx > OpenPx)
             const denomShort = pos * (1 + mmRate + liqRate); 
             if (denomShort !== 0) {
-                // 公式：(面值*张数 * 开仓均价 + 保证金余额) / (面值*张数 * (1 + MMR + LiqR))
                 liqShort = (pos * open + mb) / denomShort;
             }
         }
 
-        // 开仓均价
         const avgOpen = calcOpenAvgPrice(face, origQty, origPrice, newQty, newPrice, "U本位合约");
 
-
-        // 结果展示 (U本位)
         switch (item) {
             case "开仓均价":
                 html += `<div class="sub-title">开仓均价</div>`;
@@ -672,46 +678,38 @@
         return html;
     }
 
-
-    // ========== 核心计算 - 币本位合约 (Coin-M) ==========
-
     function calcCoin(item, P) {
         const { side, face, ctt, open, close, lev, feeOpenRate, feeCloseRate, mark, fundPct, mmRate, liqRate, mb, effMargin, reduceFee, origQty, origPrice, newQty, newPrice } = P;
+        // ... (内部逻辑保持不变)
         const Unit = "币"; 
         let html = "";
-        const P_C = face * ctt; // 合约总面值 (币)
+        const P_C = face * ctt; 
 
-        // 仓位价值 (Value in Coin) - 面值 * 张数 / 标记价格
         let posValue = null;
         if (mark != null && mark !== 0) {
             posValue = P_C / mark;
         }
         
-        // 合约收益 (PnL in Coin)
         let pnl = null;
         if (open != null && close != null && open !== 0 && close !== 0) {
             pnl = side === "long" ? P_C * (1 / open - 1 / close) : P_C * (1 / close - 1 / open);
         }
 
-        // 初始保证金 (IM in Coin)
         let initMargin = null;
         if (open != null && open !== 0 && lev != null && lev !== 0) {
             initMargin = P_C / open / lev;
         }
 
-        // 手续费 (Fee in Coin)
         let feeOpen = null, feeClose = null, feeTotal = null;
         if (open != null && open !== 0) feeOpen = P_C / open * feeOpenRate;
         if (close != null && close !== 0) feeClose = P_C / close * feeCloseRate;
         if (feeOpen != null || feeClose != null) feeTotal = (feeOpen || 0) + (feeClose || 0);
 
-        // 维持保证金 (MM in Coin)
         let maintMargin = null;
         if (posValue != null && mmRate != null) {
             maintMargin = posValue * mmRate;
         }
 
-        // 维持保证金率 (单币种全仓)
         let marginRatioSingle = null;
         if (mb != null && pnl != null && posValue != null && mmRate != null) {
             const liqFee = pct(getNum("takerFee") || 0); 
@@ -721,30 +719,24 @@
             }
         }
 
-        // 预估强平价 (LiqPx) - 修正后的 币本位公式
         let liqLong = null, liqShort = null;
         if (posValue != null && open != null && open !== 0 && mb != null && mmRate != null && liqRate != null) {
-            const posCoinAtOpen = P_C / open; // 初始仓位（币）
+            const posCoinAtOpen = P_C / open;
             const feeRate = liqRate;
 
-            // 多仓预估强平价
             const denomLong = mb + posCoinAtOpen; 
             if (denomLong !== 0) {
                 liqLong = posValue * (mmRate + feeRate + 1) / denomLong; 
             }
 
-            // 空仓预估强平价
             const denomShort = mb - posCoinAtOpen; 
             if (denomShort !== 0) {
                 liqShort = posValue * (mmRate + feeRate - 1) / denomShort;
             }
         }
 
-        // 开仓均价 - 调和平均
         const avgOpen = calcOpenAvgPrice(face, origQty, origPrice, newQty, newPrice, "币本位合约");
 
-
-        // 结果展示 (币本位)
         switch (item) {
             case "开仓均价":
                 html += `<div class="sub-title">开仓均价</div>`;
@@ -791,4 +783,119 @@
                 break;
             case "仓位价值":
                 html += `<div class="sub-title">仓位价值 (${Unit})</div>`;
-                html += rowBig
+                html += rowBig("仓位价值", posValue, 8);
+                break;
+            case "资金费用":
+                html += `<div class="sub-title">资金费用 (${Unit})</div>`;
+                const fundingFee = posValue != null && fundPct != null ? posValue * pct(fundPct) : null;
+                html += row("仓位价值", posValue, 8, Unit);
+                html += rowBig("资金费用", fundingFee, 8);
+                break;
+            case "预估强平价":
+                html += `<div class="sub-title">预估强平价格</div>`;
+                html += rowBig("多仓预估强平价", liqLong, 8);
+                html += rowBig("空仓预估强平价", liqShort, 8);
+                break;
+            default:
+                html += "该项目暂未实现，请先使用 Excel。";
+        }
+
+        return html;
+    }
+
+    // ========== 主计算逻辑 ==========
+
+    function doCalc() {
+        const cType = $D.contractType.value;
+        const item = $D.calcItem.value;
+        const resEl = $D.result;
+        const hintEl = $D.hintText;
+
+        if (!REQUIRED[cType] || !REQUIRED[cType][item]) {
+            resEl.textContent = "当前合约类型下，该项目暂未在网页中实现，请先使用 Excel。";
+            hintEl.classList.remove('hint-error');
+            return;
+        }
+
+        const missing = checkRequired(cType, item);
+        if (missing.length > 0) {
+            resEl.innerHTML = `<div class="sub-title" style="color:#FF5252;">⚠️ 必填参数缺失</div>`;
+            hintEl.innerHTML = `<div style="color:#FF5252;">请先填写以下参数再计算：${missing.join("、")}</div>`;
+            hintEl.classList.add('hint-error');
+            return;
+        }
+        hintEl.classList.remove('hint-error');
+
+
+        // 收集所有参数（使用更健壮的 getNum 和 getVal）
+        const params = {
+            side: getVal("side"),
+            face: getNum("faceValue"),
+            ctt: Math.abs(getNum("contracts") || 0),
+            open: getNum("openPx"),
+            close: getNum("closePx"),
+            lev: getNum("leverage"),
+            makerPct: getNum("makerFee"),
+            takerPct: getNum("takerFee"),
+            openRole: getVal("openRole"),
+            closeRole: getVal("closeRole"),
+            mark: getNum("markPx"),
+            fundPct: getNum("fundingRate"),
+            mmRate: pct(getNum("mmRate") || 0),
+            liqRate: pct(getNum("liqFeeRate") || 0),
+            mb: getNum("marginBalance"),
+            effMargin: getNum("effectiveMargin"),
+            reduceFee: getNum("reduceFee"),
+            origQty: getNum("origQty"),
+            origPrice: getNum("origPrice"),
+            newQty: getNum("newQty"),
+            newPrice: getNum("newPrice")
+        };
+        
+        // 费率转换 (使用 || "taker" 作为默认值，防止 select 元素不存在时，逻辑中断)
+        const openRole = params.openRole || "taker"; 
+        const closeRole = params.closeRole || "taker"; 
+
+        params.maker = pct(params.makerPct || 0);
+        params.taker = pct(params.takerPct || 0);
+        
+        // 修正：使用更健壮的 openRole/closeRole
+        params.feeOpenRate = openRole === "maker" ? params.maker : params.taker;
+        params.feeCloseRate = closeRole === "maker" ? params.maker : params.taker; 
+
+
+        let html = "";
+        if (cType === "U本位合约") {
+            // FIX: 在计算开仓保证金（初始）时，由于 side 不存在，导致 pnl 无法计算，但 pnl 不用于 IM，所以没关系。
+            // 核心计算逻辑是健壮的。
+            html = calcU(item, params);
+        } else if (cType === "币本位合约") {
+            html = calcCoin(item, params);
+        } else if (cType === "开仓均价 合约 U+币本") {
+            if (item !== "开仓均价") {
+                html = "“开仓均价 合约 U+币本” 表仅支持计算开仓均价，请将计算项目切换为【开仓均价】。";
+            } else {
+                const avgOpenU = calcOpenAvgPrice(params.face || 1, params.origQty, params.origPrice, params.newQty, params.newPrice, "U本位合约"); 
+                const avgOpenCoin = calcOpenAvgPrice(params.face || 1, params.origQty, params.origPrice, params.newQty, params.newPrice, "币本位合约"); 
+                html = `<div class="sub-title">U本位 (加权平均)</div>`;
+                html += rowBig("U本位开仓均价", avgOpenU, 8);
+                html += `<div class="sub-title">币本位 (调和平均)</div>`;
+                html += rowBig("币本位开仓均价", avgOpenCoin, 8);
+            }
+        } else {
+            html = "该合约类型暂未实现，请使用 Excel 表格版本。";
+        }
+
+        resEl.innerHTML = html;
+        hintEl.textContent = "计算完成。";
+    }
+
+    // ========== 事件绑定与初始化 ==========
+    initDOMElements(); 
+
+    $D.contractType.addEventListener("change", refreshVisibleFields);
+    $D.calcItem.addEventListener("change", refreshVisibleFields);
+    $D.btnCalc.addEventListener("click", doCalc);
+
+    refreshVisibleFields(); // 页面加载时执行一次
+})();
