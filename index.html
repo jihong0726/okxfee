@@ -1,124 +1,112 @@
+html = r"""
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>交易计算工具 · 内部自用</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="css/common.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="css/common.css">
 </head>
 <body>
-<div class="app-shell">
-  <!-- 左侧：一级交易区 -->
+<div class="app">
   <aside class="sidebar">
-    <div class="sidebar-header">
-      <div class="badge">交易计算助手 · 内部自用</div>
-      <h1 class="app-title">交易计算工具</h1>
-      <p class="app-desc">
-        一个页面搞定：U 本位 / 币本位合约、现货杠杆、现货开仓均价、期权计算等。先选交易区，再选计算项目，
-        右侧输入数据即可得到结果和中文公式说明。
-      </p>
-    </div>
+    <div class="sidebar-badge">交易计算助手 · 内部自用</div>
+    <h1 class="sidebar-title">交易计算工具</h1>
+    <p class="sidebar-desc">
+      一个页面搞定：U 本位 / 币本位合约、现货杠杆、现货开仓均价、期权计算。先选择交易区，再选计算项目，右侧输入数据即可得到结果和中文公式说明。
+    </p>
 
-    <div class="sidebar-section-title">一级：选择交易区</div>
-    <div class="area-list" id="areaList">
-      <button class="area-item area-item-active" data-area="u-perp">
-        <div class="area-title">U 本位合约</div>
-        <div class="area-sub">逐笔 / 全仓：开仓均价、合约收益、保证金、强平价等</div>
-      </button>
-      <button class="area-item" data-area="coin-perp">
-        <div class="area-title">币本位合约</div>
-        <div class="area-sub">以币计价：面值除价格形式的计算</div>
-      </button>
-      <button class="area-item" data-area="spot-margin">
-        <div class="area-title">现货杠杆</div>
-        <div class="area-sub">初始保证金、维持保证金、保证金率等</div>
-      </button>
-      <button class="area-item" data-area="spot-avg">
-        <div class="area-title">现货开仓均价</div>
-        <div class="area-sub">多次买入 / 卖出后的重新计算均价</div>
-      </button>
-      <button class="area-item" data-area="options">
-        <div class="area-title">期权</div>
-        <div class="area-sub">期权费、手续费、盈亏平衡点、收益率等</div>
-      </button>
+    <div class="sidebar-section-title">一级 · 选择交易区</div>
+    <div class="zone-list">
+      <div class="zone-card zone-card--active">
+        <div class="zone-name">U 本位合约</div>
+        <div class="zone-desc">逐笔 / 全仓：合约收益、保证金、强平价等</div>
+        <div class="zone-tag">当前已支持</div>
+      </div>
+      <div class="zone-card zone-card--disabled">
+        <div class="zone-name">币本位合约</div>
+        <div class="zone-desc">以后扩展：面值除价格式的合约计算</div>
+        <div class="zone-tag">开发中</div>
+      </div>
+      <div class="zone-card zone-card--disabled">
+        <div class="zone-name">现货杠杆</div>
+        <div class="zone-desc">初始保证金、维持保证金、保证金率等</div>
+        <div class="zone-tag">开发中</div>
+      </div>
+      <div class="zone-card zone-card--disabled">
+        <div class="zone-name">现货开仓均价</div>
+        <div class="zone-desc">多次买入 / 卖出后重新计算均价</div>
+        <div class="zone-tag">开发中</div>
+      </div>
+      <div class="zone-card zone-card--disabled">
+        <div class="zone-name">期权</div>
+        <div class="zone-desc">期权费、手续费、盈亏平衡点、收益率等</div>
+        <div class="zone-tag">开发中</div>
+      </div>
     </div>
 
     <div class="sidebar-tip">
-      提示：左侧切换不同功能，右侧内容区域即时刷新，不会跳转页面 / 不刷新链接。适合公司电脑固定打开当工具栏用。
+      提示：左侧切换不同功能，右侧内容区域即时刷新，不会换页面、不跳转链接。适合公司电脑固定打开当工具用。
     </div>
   </aside>
 
-  <!-- 右侧：当前交易区 + 二级 tab + 计算区 -->
-  <main class="main-panel">
-    <!-- 当前交易区标题 -->
+  <main class="main">
     <header class="main-header">
-      <div class="main-header-title">
-        当前交易区：<span id="currentAreaName">U 本位合约</span>
-      </div>
-      <div class="main-header-sub" id="currentAreaDesc">
+      <div class="now-zone">当前交易区：<span>U 本位合约</span></div>
+      <div class="now-zone-desc">
         以 USDT 结算的合约：支持开仓均价、合约收益、保证金、资金费、强平价等多种计算。
       </div>
     </header>
 
-    <!-- 二级：选择计算项目 -->
-    <section class="calc-tabs" id="calcTabs">
-      <button class="calc-tab calc-tab-active" data-calc="open-price">开仓均价</button>
-      <button class="calc-tab" data-calc="fee">手续费</button>
-      <button class="calc-tab" data-calc="pnl">合约收益</button>
-      <button class="calc-tab" data-calc="roe">收益率</button>
-      <button class="calc-tab" data-calc="init-margin">开仓保证金（初始）</button>
-      <button class="calc-tab" data-calc="mm-margin">维持保证金</button>
-      <button class="calc-tab" data-calc="position-value">仓位价值</button>
-      <button class="calc-tab" data-calc="funding">资金费用</button>
-      <button class="calc-tab" data-calc="strong-price">预估强平价</button>
-    </section>
+    <section class="calc-area">
+      <div class="calc-tabs"></div>
 
-    <!-- 三级：输入区 + 结果区 -->
-    <section class="calc-layout">
-      <!-- 输入区 -->
-      <div class="input-panel">
-        <h2 class="panel-title" id="inputTitle">输入区 · 开仓均价</h2>
-        <p class="panel-subtitle" id="inputSubtitle">
-          输入合约面值、原持仓张数和均价、新增张数和成交均价，计算新的总体开仓均价。
-        </p>
+      <div class="calc-panels">
+        <section class="panel panel--form">
+          <h2 class="panel-title form-title">输入区 · 开仓均价</h2>
+          <p class="panel-subtitle form-desc">
+            输入合约面值、原持仓张数和均价、新增张数和成交均价，计算新的整体开仓均价。
+          </p>
+          <div class="form-fields">
+            <!-- 动态生成 -->
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="btnClear">清空输入</button>
+            <button type="button" class="btn btn-primary" id="btnCalc">开始计算</button>
+          </div>
+          <div class="form-tip">请按提示填写数据，然后点击“开始计算”。</div>
+        </section>
 
-        <div id="inputFields" class="form-fields">
-          <!-- JS 动态渲染输入行 -->
-        </div>
+        <section class="panel panel--result">
+          <h2 class="panel-title">结果预览</h2>
+          <div class="panel-subtitle result-sub">
+            可复制 / 记录在飞书 / 文本备注。
+          </div>
+          <textarea id="resultMain" class="result-main" placeholder="这里会显示：主要计算结果。"></textarea>
 
-        <div class="form-actions">
-          <button class="btn" id="btnClear">清空输入</button>
-          <button class="btn btn-primary" id="btnCalc">开始计算</button>
-        </div>
-        <div class="panel-footnote">请输入数据后点击“开始计算”。</div>
+          <div class="formula-block">
+            <div class="formula-title">公式说明（通用表达）：</div>
+            <pre id="formulaBase" class="formula-text"></pre>
+          </div>
+          <div class="formula-block">
+            <div class="formula-title">代入本次数据后的公式：</div>
+            <pre id="formulaNumeric" class="formula-text"></pre>
+          </div>
+        </section>
       </div>
 
-      <!-- 结果区 -->
-      <div class="result-panel">
-        <h2 class="panel-title">结果预览</h2>
-        <div class="result-subtitle">可复制 / 记录在飞书文档</div>
-
-        <textarea id="resultBox" class="result-textarea"
-                  placeholder="这里会显示：计算结果 + 关键中间值。"></textarea>
-
-        <div class="formula-wrapper">
-          <div class="formula-title">公式说明</div>
-          <div class="formula-line" id="formulaPlain">
-            这里先展示：通用的中文公式。
-          </div>
-          <div class="formula-line" id="formulaWithNumbers">
-            这里再展示：代入你填写数字后的公式以及近似结果。
-          </div>
+      <footer class="main-footer">
+        <div class="footer-text">
+          本工具仅作内部计算参考，请以系统实际数据为准。
+          <span id="versionText">版本：</span>
         </div>
-
-        <div class="version-text">
-          本工具仅作内部计算参考，请以系统实际数据为准。版本：v1.0（示例）
-        </div>
-      </div>
+      </footer>
     </section>
   </main>
 </div>
 
-<script src="js/calculator.js"></script>
+<script src="js/core.js"></script>
 </body>
 </html>
+"""
+print(len(html.splitlines()))
