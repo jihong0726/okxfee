@@ -1,4 +1,322 @@
 <!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>合约清算价格计算器 (浅色主题)</title>
+    
+    <script type="text/javascript" id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+
+    <style>
+        /* 全局样式和浅色主题基础 */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa; /* 极浅灰背景 */
+            color: #333333; /* 碳灰文字 */
+            padding: 20px;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #ffffff; /* 纯白内容区域背景 */
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* 柔和阴影 */
+        }
+
+        /* 标题样式 */
+        h1 {
+            color: #004d99; /* 专业金融蓝 */
+            text-align: center;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 15px;
+            margin-top: 0;
+            margin-bottom: 30px;
+        }
+
+        /* 输入组样式 */
+        .input-group {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #007bff; /* 宝蓝色标签 */
+        }
+
+        .input-group input[type="number"],
+        .input-group select {
+            padding: 12px;
+            border: 1px solid #ced4da; /* 浅边框 */
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .input-group input[type="number"]:focus,
+        .input-group select:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+            outline: none;
+        }
+
+        /* 按钮样式 */
+        button {
+            background-color: #28a745; /* 绿色按钮 */
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 700;
+            transition: background-color 0.3s, transform 0.1s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #218838; /* 鼠标悬停变深 */
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        /* 结果区域样式 */
+        #results {
+            margin-top: 40px;
+            padding: 20px;
+            border-top: 3px dashed #e9ecef;
+        }
+
+        .result-box {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 5px solid #007bff; /* 宝蓝色左侧点缀 */
+            background-color: #f1f7fe; /* 极浅蓝色背景 */
+        }
+
+        .result-box p {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: #004d99;
+            margin-right: 10px;
+        }
+
+        .result-value {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        /* 清算价格和杠杆高亮 */
+        #liquidationPrice {
+            color: #dc3545; /* 红色高亮清算价 */
+            font-size: 24px;
+        }
+
+        #effectiveLeverage {
+            color: #007bff; /* 蓝色高亮有效杠杆 */
+        }
+
+        /* 公式区域样式 */
+        .formula-section {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #e9ecef; /* 浅灰背景 */
+            border-radius: 8px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📝 加密货币合约清算价格计算器</h1>
+
+    <div class="input-group">
+        <label for="entryPrice">开仓价格 ($/币)</label>
+        <input type="number" id="entryPrice" placeholder="例如: 30000" value="30000">
+    </div>
+
+    <div class="input-group">
+        <label for="leverage">名义杠杆倍数 (X)</label>
+        <input type="number" id="leverage" placeholder="例如: 20" value="20">
+    </div>
+
+    <div class="input-group">
+        <label for="positionSize">开仓数量 (币)</label>
+        <input type="number" id="positionSize" placeholder="例如: 1" value="1">
+    </div>
+
+    <div class="input-group">
+        <label for="maintenanceMarginRate">维持保证金率 (%)</label>
+        <input type="number" id="maintenanceMarginRate" placeholder="例如: 0.5" value="0.5">
+    </div>
+
+    <div class="input-group">
+        <label for="fee">开仓手续费 (%)</label>
+        <input type="number" id="fee" placeholder="例如: 0.05" value="0.05">
+    </div>
+
+    <div class="input-group">
+        <label for="fundingRate">预计资金费率 (%) (仅作估算)</label>
+        <input type="number" id="fundingRate" placeholder="例如: 0.01" value="0.01">
+    </div>
+
+    <div class="input-group">
+        <label for="direction">仓位方向</label>
+        <select id="direction">
+            <option value="long">做多 (Long)</option>
+            <option value="short">做空 (Short)</option>
+        </select>
+    </div>
+
+    <button onclick="calculateLiquidationPrice()">计算清算价格</button>
+
+    <div id="results">
+        <div class="result-box">
+            <p><span class="result-label">清算价格:</span> <span class="result-value" id="liquidationPrice">--</span></p>
+        </div>
+        <div class="result-box">
+            <p><span class="result-label">起始保证金:</span> <span class="result-value" id="initialMargin">--</span></p>
+        </div>
+        <div class="result-box">
+            <p><span class="result-label">有效杠杆:</span> <span class="result-value" id="effectiveLeverage">--</span></p>
+        </div>
+        <div class="result-box">
+            <p><span class="result-label">开仓价值 (本金 x 杠杆):</span> <span class="result-value" id="positionValue">--</span></p>
+        </div>
+        <div class="result-box">
+            <p><span class="result-label">可承受的跌幅/涨幅:</span> <span class="result-value" id="tolerableChange">--</span></p>
+        </div>
+    </div>
+
+    <div class="formula-section">
+        <p>使用的简化计算公式 (不含保险基金和穿仓平摊):</p>
+        <p>初始保证金率: $IMR = 1 / \text{杠杆倍数}$</p>
+        <p>维持保证金率: $MMR = \text{输入值} / 100$</p>
+        <p>开仓总成本 (USDT): $Cost = (\text{开仓价格} \times \text{开仓数量}) / \text{杠杆} + \text{手续费} + \text{资金费}$</p>
+        <p>做多清算价格: $$\text{清算价格} = \text{开仓价格} \times \left(1 - \frac{IMR - MMR + \text{额外成本比}}{\text{开仓数量} \times (1 - MMR)}\right)$$</p>
+        <p>做空清算价格: $$\text{清算价格} = \text{开仓价格} \times \left(1 + \frac{IMR - MMR + \text{额外成本比}}{\text{开仓数量} \times (1 + MMR)}\right)$$</p>
+    </div>
+</div>
+
+<script>
+    /**
+     * 合约清算价格计算函数
+     */
+    function calculateLiquidationPrice() {
+        // 1. 获取输入值并转换为数字 (使用parseFloat处理小数)
+        const entryPrice = parseFloat(document.getElementById('entryPrice').value);
+        const leverage = parseFloat(document.getElementById('leverage').value);
+        const positionSize = parseFloat(document.getElementById('positionSize').value);
+        // 将百分比输入转换为小数形式
+        const maintenanceMarginRate = parseFloat(document.getElementById('maintenanceMarginRate').value) / 100;
+        const feeRate = parseFloat(document.getElementById('fee').value) / 100;
+        const fundingRate = parseFloat(document.getElementById('fundingRate').value) / 100;
+        const direction = document.getElementById('direction').value;
+
+        // 2. 基本校验
+        if (!entryPrice || !leverage || !positionSize || isNaN(maintenanceMarginRate) || isNaN(feeRate) || isNaN(fundingRate) || leverage <= 0) {
+            alert('请确保所有输入项都已填写有效数字，且杠杆大于0。');
+            return;
+        }
+
+        // 3. 计算关键参数
+        
+        // (1) 开仓总价值 (合约价值)
+        const positionValue = entryPrice * positionSize;
+        
+        // (2) 初始保证金率 (IMR)
+        // IMR = 1 / 杠杆
+        const initialMarginRate = 1 / leverage;
+
+        // (3) 起始保证金 (Initial Margin) - 实际投入的本金
+        // Initial Margin = 开仓价值 / 杠杆
+        const initialMargin = positionValue / leverage;
+
+        // (4) 额外成本 (手续费和资金费 - 基于开仓价值计算)
+        // 简化处理：将开仓手续费和一期资金费视为开仓时的额外成本
+        const totalExtraCost = positionValue * (feeRate + fundingRate);
+        
+        // (5) 总保证金 (用于计算盈亏的本金)
+        // 理论上是初始保证金加上账户余额中的可用资金，但此处简化为只考虑初始保证金
+        const totalMargin = initialMargin; 
+
+        // 4. 清算价格计算 (简化公式)
+
+        let liquidationPrice;
+        let tolerableChangePercentage;
+
+        // 简化公式推导: (IM - TotalExtraCost) / (PositionValue * MMR) = % Change
+        
+        // 用于计算清算价格的“总成本/价值比” (包括手续费等额外成本)
+        // 这里的公式基于简化后的推导，重点是保证金与维持保证金的差额能覆盖的损失百分比
+        const costFactor = initialMarginRate - maintenanceMarginRate;
+
+        // 额外成本占合约价值的比率
+        const extraCostRatio = totalExtraCost / positionValue;
+
+        if (direction === 'long') {
+            // 做多: 价格下跌导致清算
+            // 清算价格 = 开仓价格 * (1 - (初始保证金率 - 维持保证金率 + 额外成本比) / (1 - 维持保证金率))
+            liquidationPrice = entryPrice * (1 - (costFactor + extraCostRatio) / (1 - maintenanceMarginRate));
+            
+            // 可承受的跌幅百分比
+            tolerableChangePercentage = (1 - (liquidationPrice / entryPrice)) * 100;
+
+        } else { // direction === 'short'
+            // 做空: 价格上涨导致清算
+            // 清算价格 = 开仓价格 * (1 + (初始保证金率 - 维持保证金率 + 额外成本比) / (1 + 维持保证金率))
+            liquidationPrice = entryPrice * (1 + (costFactor + extraCostRatio) / (1 + maintenanceMarginRate));
+
+            // 可承受的涨幅百分比
+            tolerableChangePercentage = ((liquidationPrice / entryPrice) - 1) * 100;
+        }
+
+        // 5. 计算有效杠杆 (基于实际投入本金)
+        // 有效杠杆 = 开仓总价值 / 实际投入本金
+        const effectiveLeverage = positionValue / totalMargin; 
+        
+        // 6. 结果输出
+        document.getElementById('liquidationPrice').textContent = liquidationPrice.toFixed(4) + ' $';
+        document.getElementById('initialMargin').textContent = totalMargin.toFixed(2) + ' $';
+        document.getElementById('positionValue').textContent = positionValue.toFixed(2) + ' $';
+        document.getElementById('effectiveLeverage').textContent = effectiveLeverage.toFixed(2) + ' X';
+
+        // 显示可承受的变动
+        const changeText = direction === 'long' 
+            ? `下跌 ${Math.abs(tolerableChangePercentage).toFixed(2)} %`
+            : `上涨 ${Math.abs(tolerableChangePercentage).toFixed(2)} %`;
+            
+        document.getElementById('tolerableChange').textContent = changeText;
+        
+        // 确保 MathJax 重新渲染公式
+        if (typeof MathJax !== 'undefined') {
+            MathJax.typesetPromise();
+        }
+    }
+
+    // 页面加载完成后自动计算一次 (使用默认值)
+    document.addEventListener('DOMContentLoaded', calculateLiquidationPrice);
+</script>
+
+</body>
+</html><!DOCTYPE html>
 <html lang="zh">
 <head>
     <meta charset="UTF-8" />
