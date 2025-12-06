@@ -1120,30 +1120,52 @@
     }
   };
 
-  // ---------- 一级交易区切换（目前只有 U 本位可用） ----------
+  // 一级交易区切换：
+  // - U 本位合约：停留在当前 index.html 页面
+  // - 币本位合约：跳转到 coin_perp.html
+  // - 其它暂时还是提示「开发中」
   areaListEl.addEventListener("click", (e) => {
     const item = e.target.closest(".area-item");
     if (!item) return;
     const area = item.dataset.area;
 
+    // 左侧高亮
     Array.from(areaListEl.querySelectorAll(".area-item")).forEach((el) => {
       el.classList.toggle("active", el === item);
     });
 
     if (area === "uPerp") {
+      // 保持原来的 U 本位展示
+      currentAreaTitleEl.textContent = "当前交易区：U 本位合约";
+      currentAreaDescEl.textContent =
+        "以 USDT 结算的合约：支持开仓均价、合约收益、收益率、保证金、仓位价值、资金费用、预估强平价等计算。";
+      areaPlaceholderEl.style.display = "none";
+      uMainBodyEl.style.display = "grid";
+    } else if (area === "coinPerp") {
+      // 打开币本位合约页面（同一目录下的 coin_perp.html）
+      // 如果你想同标签跳转，就用 location.href；想新标签就用 window.open
+      // 同标签跳转：
+      // location.href = "coin_perp.html";
+
+      // 新标签打开（推荐）：
+      window.open("coin_perp.html", "_blank");
+
+      // 由于已经跳到新页面，这里不需要再改右侧内容，但为了防止误点其它区块，简单还原到 U 本位显示
       currentAreaTitleEl.textContent = "当前交易区：U 本位合约";
       currentAreaDescEl.textContent =
         "以 USDT 结算的合约：支持开仓均价、合约收益、收益率、保证金、仓位价值、资金费用、预估强平价等计算。";
       areaPlaceholderEl.style.display = "none";
       uMainBodyEl.style.display = "grid";
     } else {
+      // 其它几个交易区（现货杠杆 / 现货开仓均价 / 期权）先保留占位提示
       currentAreaTitleEl.textContent = "当前交易区：开发中";
       currentAreaDescEl.textContent =
-        "该交易区的计算逻辑还在梳理中，目前仅开放 U 本位合约的全部功能。可以先切回 U 本位使用。";
+        "该交易区的计算逻辑还在梳理中，目前已开放 U 本位合约和币本位合约的页面。可以先使用已上线的功能。";
       areaPlaceholderEl.style.display = "block";
       uMainBodyEl.style.display = "none";
     }
   });
+
 
   // ---------- 初始化 ----------
   renderToolSelect();
