@@ -2,198 +2,979 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <title>交易计算工具（内部用）</title>
-  <link rel="stylesheet" href="common.css" />
+  <title>交易计算工具（U 本位合约）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    /* 这里只是补充一些局部样式，跟 common.css 共存 */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      height: 100%;
+      touch-action: manipulation;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
+        "Helvetica Neue", Arial, sans-serif;
+      background: radial-gradient(circle at top left, #1b2750 0, #050816 45%, #02030a 100%);
+      color: #e8f0ff;
+      min-height: 100vh;
+    }
+    .app-root {
+      max-width: 1440px;
+      margin: 24px auto;
+      padding: 0 24px 32px;
+      display: flex;
+      gap: 24px;
+    }
+    /* 侧边栏 */
+    .sidebar {
+      width: 320px;
+      background: radial-gradient(circle at top, #16213a 0, #050815 60%);
+      border-radius: 20px;
+      padding: 20px 20px 16px;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(86, 123, 255, 0.4);
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      letter-spacing: 0.02em;
+      color: #c5d4ff;
+      background: linear-gradient(135deg, rgba(76, 130, 255, 0.18), rgba(119, 148, 255, 0.05));
+      border: 1px solid rgba(118, 150, 255, 0.6);
+      margin-bottom: 16px;
+    }
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      margin-right: 6px;
+      background: #4fd1ff;
+      box-shadow: 0 0 8px rgba(79, 209, 255, 0.9);
+    }
+    .side-title {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .side-subtitle {
+      font-size: 13px;
+      line-height: 1.6;
+      color: #a9b6dd;
+      margin-bottom: 20px;
+    }
+    .side-section-title {
+      font-size: 13px;
+      color: #8f9ad0;
+      margin: 10px 0 8px;
+    }
+    .area-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .area-item {
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: rgba(10, 18, 40, 0.9);
+      border: 1px solid rgba(77, 102, 179, 0.5);
+      cursor: pointer;
+      transition: all 0.18s ease-out;
+    }
+    .area-item:hover {
+      border-color: #5c7cff;
+      box-shadow: 0 0 0 1px rgba(92, 124, 255, 0.4);
+    }
+    .area-item.active {
+      background: radial-gradient(circle at top left, #255dff40 0, #101424 60%);
+      border-color: #6c8dff;
+      box-shadow: 0 12px 25px rgba(15, 70, 200, 0.65);
+    }
+    .area-item-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .area-item-desc {
+      font-size: 12px;
+      color: #9facdf;
+    }
+    .side-tip {
+      font-size: 11px;
+      color: #6f7bb0;
+      margin-top: 22px;
+      border-top: 1px dashed rgba(92, 119, 210, 0.5);
+      padding-top: 10px;
+      line-height: 1.6;
+    }
 
-    .main-headline-row {
+    /* 主体 */
+    .main {
+      flex: 1;
+      background: radial-gradient(circle at top, #141c38 0, #050815 45%, #02030a 100%);
+      border-radius: 20px;
+      padding: 20px 22px 18px;
+      border: 1px solid rgba(86, 123, 255, 0.45);
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* 顶部：当前交易区 + 计算项目下拉 */
+    .top-row {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 4px;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 6px;
+    }
+    .main-headline {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 3px;
+    }
+    .main-desc {
+      font-size: 13px;
+      color: #99a7de;
     }
     .tool-select-wrap {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
+    }
+    .tool-select-label {
       font-size: 13px;
-      color: #c4d1ff;
+      color: #b7c3ff;
+      white-space: nowrap;
     }
     .tool-select {
+      min-width: 190px;
       border-radius: 999px;
       padding: 6px 12px;
-      border: 1px solid rgba(107,133,209,.9);
-      background: rgba(5,10,32,.9);
+      border: 1px solid rgba(132, 162, 255, 0.9);
+      background: rgba(8, 16, 50, 0.95);
+      color: #e5ecff;
+      font-size: 13px;
+      outline: none;
+      appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, #a3b7ff 50%),
+        linear-gradient(135deg, #a3b7ff 50%, transparent 50%);
+      background-position: calc(100% - 16px) calc(50% - 3px),
+        calc(100% - 11px) calc(50% - 3px);
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
+    }
+
+    /* 布局：左输入 右结果 */
+    .main-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.1fr);
+      gap: 18px;
+      margin-top: 8px;
+    }
+
+    .card {
+      border-radius: 16px;
+      padding: 14px 16px 14px;
+      background: radial-gradient(circle at top left, #232c4a 0, #050815 65%);
+      border: 1px solid rgba(88, 120, 210, 0.65);
+      box-shadow: 0 12px 26px rgba(0, 0, 0, 0.55);
+      min-height: 260px;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .card-subtitle {
+      font-size: 11px;
+      color: #9cadf0;
+    }
+
+    .input-tip {
+      font-size: 12px;
+      color: #94a2df;
+      margin-bottom: 10px;
+      line-height: 1.6;
+    }
+    .field-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .field-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .field-label {
+      min-width: 120px;
+      font-size: 13px;
+      color: #cbd6ff;
+      text-align: right;
+    }
+    .field-input-wrap {
+      flex: 1;
+      position: relative;
+    }
+    .field-input {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(103, 133, 212, 0.9);
+      background: rgba(5, 10, 32, 0.9);
+      color: #f5f7ff;
+      font-size: 13px;
+      outline: none;
+      transition: all 0.16s ease-out;
+    }
+    .field-input:focus {
+      border-color: #a9c4ff;
+      box-shadow: 0 0 0 1px rgba(80, 140, 255, 0.6);
+      background: rgba(7, 13, 38, 0.95);
+    }
+    .field-suffix {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      color: #9fb0f3;
+      pointer-events: none;
+    }
+    .field-select {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(103, 133, 212, 0.9);
+      background: rgba(5, 10, 32, 0.9);
       color: #f5f7ff;
       font-size: 13px;
       outline: none;
     }
-    .tool-select:focus {
-      border-color: #a9c4ff;
-      box-shadow: 0 0 0 1px rgba(80,140,255,.6);
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .btn {
+      border-radius: 999px;
+      padding: 7px 18px;
+      font-size: 13px;
+      border: 1px solid rgba(107, 136, 220, 0.9);
+      background: rgba(9, 14, 38, 0.9);
+      color: #d3dfff;
+      cursor: pointer;
+      transition: all 0.16s ease-out;
+    }
+    .btn:hover {
+      background: rgba(124, 157, 255, 0.15);
+      border-color: #9eb7ff;
+    }
+    .btn-primary {
+      background: radial-gradient(circle at top left, #3f83ff 0, #1b3da6 45%, #0b183a 100%);
+      border-color: #a3c3ff;
+      color: #ffffff;
+      box-shadow: 0 10px 26px rgba(50, 120, 255, 0.85);
+    }
+    .btn-primary:hover {
+      background: radial-gradient(circle at top left, #4b8fff 0, #2546b4 45%, #0e214a 100%);
+      border-color: #c4d6ff;
+    }
+    .btn-small {
+      padding: 5px 12px;
+      font-size: 12px;
     }
 
-    .history-block {
+    .status-text {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #93a4ff;
+      min-height: 16px;
+    }
+    .status-error {
+      color: #ff9a9a;
+    }
+
+    .preview-main {
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: rgba(3, 9, 32, 0.95);
+      border: 1px solid rgba(116, 144, 235, 0.7);
+      font-size: 13px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      min-height: 90px;
+    }
+
+    .preview-extra {
       margin-top: 10px;
       border-radius: 10px;
       padding: 8px 11px;
-      background: rgba(6,14,44,0.95);
-      border: 1px solid rgba(88,118,220,0.8);
+      background: rgba(10, 20, 56, 0.95);
+      border: 1px solid rgba(98, 130, 224, 0.8);
       font-size: 11px;
       color: #c3d0ff;
+      line-height: 1.8;
+      white-space: pre-wrap;
     }
-    .history-title {
-      font-size: 12px;
+    .preview-extra strong {
+      color: #f0f4ff;
       font-weight: 600;
-      color: #e4ebff;
-      margin-bottom: 4px;
-    }
-    .history-list {
-      max-height: 120px;
-      overflow-y: auto;
-      padding-right: 4px;
-    }
-    .history-item {
-      font-size: 11px;
-      line-height: 1.6;
-      color: #b6c3ff;
-      opacity: .95;
-    }
-    .history-item + .history-item {
-      margin-top: 3px;
-      border-top: 1px dashed rgba(120,140,230,.4);
-      padding-top: 3px;
     }
 
-    .copy-btn {
-      margin-top: 6px;
-      background: #204cff;
-      color: #fff;
-      padding: 4px 10px;
-      font-size: 12px;
-      border-radius: 999px;
-      cursor: pointer;
-      border: none;
+    .version {
+      font-size: 11px;
+      color: #7f8ae0;
+      text-align: right;
+      margin-top: 8px;
+      opacity: 0.85;
     }
-    .copy-btn:hover { opacity: .85; }
+
+    .area-placeholder {
+      font-size: 13px;
+      color: #9ba6db;
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px dashed rgba(128, 145, 230, 0.75);
+      background: rgba(8, 13, 42, 0.8);
+      line-height: 1.7;
+    }
 
     @media (max-width: 1100px) {
-      .main-headline-row {
+      .app-root {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+      }
+      .main-body {
+        grid-template-columns: 1fr;
+      }
+      .top-row {
         flex-direction: column;
         align-items: flex-start;
-        gap: 6px;
+      }
+      .tool-select-wrap {
+        align-self: stretch;
+        justify-content: flex-start;
       }
     }
   </style>
 </head>
-
 <body>
-<div class="page-grid">
-  <!-- 左边：交易区 -->
+<div class="app-root">
+  <!-- 侧边栏 -->
   <aside class="sidebar">
-    <h2 class="tool-title">交易计算工具</h2>
-    <p class="tool-desc">
-      一个页面搞定：U 本位 / 币本位合约、现货杠杆、现货开仓均价、期权 5 种计算。
-      先选择交易区，再选计算项目，右侧输入数据即可看到结果和中文公式说明。
-    </p>
-
-    <div class="sidebar-block">
-      <div class="sidebar-title">交易区</div>
-
-      <button class="sidebar-btn active">
-        U 本位合约
-        <br /><span>逐笔 / 全仓：开仓均价、合约收益、保证金、强平价等</span>
-      </button>
-      <button class="sidebar-btn disabled">币本位合约（开发中）</button>
-      <button class="sidebar-btn disabled">现货杠杆（开发中）</button>
-      <button class="sidebar-btn disabled">现货开仓均价（开发中）</button>
-      <button class="sidebar-btn disabled">期权（开发中）</button>
+    <div class="badge">
+      <span class="badge-dot"></span>
+      交易计算助手 · 内部自用
+    </div>
+    <div class="side-title">交易计算工具</div>
+    <div class="side-subtitle">
+      一个页面搞定：U 本位 / 币本位合约、现货杠杆、现货开仓均价、期权多种计算。先选交易区，再选计算项目，右侧输入数据即可看到结果和中文公式说明。
     </div>
 
-    <p class="sidebar-tip">
-      提示：左侧切换不同功能，右侧内容区域即时刷新。
-      不会跳转页面 / 不刷新链接，适合公司电脑固定打开当工具使用。
-    </p>
+    <div class="side-section-title">交易区</div>
+    <div class="area-list" id="areaList">
+      <div class="area-item active" data-area="uPerp">
+        <div class="area-item-title">U 本位合约</div>
+        <div class="area-item-desc">逐笔 / 全仓：开仓均价、合约收益、保证金、强平价等</div>
+      </div>
+      <div class="area-item" data-area="coinPerp">
+        <div class="area-item-title">币本位合约（开发中）</div>
+        <div class="area-item-desc">以后扩展：面值除价格格式的合约计算</div>
+      </div>
+      <div class="area-item" data-area="spotMargin">
+        <div class="area-item-title">现货杠杆（开发中）</div>
+        <div class="area-item-desc">初始保证金、维持保证金、保证金率等</div>
+      </div>
+      <div class="area-item" data-area="spotAvg">
+        <div class="area-item-title">现货开仓均价（开发中）</div>
+        <div class="area-item-desc">多次买入 / 卖出后的加权平均价格</div>
+      </div>
+      <div class="area-item" data-area="options">
+        <div class="area-item-title">期权（开发中）</div>
+        <div class="area-item-desc">期权费、手续费、盈亏平衡点、收益率等</div>
+      </div>
+    </div>
+
+    <div class="side-tip">
+      提示：左侧切换不同功能，右侧内容区域即时刷新。不会跳转页面 / 不刷新链接，适合公司电脑固定打开当工具使用。
+    </div>
   </aside>
 
-  <!-- 右侧：主内容 -->
+  <!-- 主体 -->
   <main class="main">
-    <!-- 顶部：标题 + 计算项目下拉 -->
-    <div>
-      <div class="main-headline-row">
+    <div class="top-row">
+      <div>
         <div class="main-headline" id="currentAreaTitle">当前交易区：U 本位合约</div>
-
-        <div class="tool-select-wrap">
-          <span>计算项目：</span>
-          <select id="toolSelect" class="tool-select"></select>
+        <div class="main-desc" id="currentAreaDesc">
+          以 USDT 结算的合约：支持开仓均价、合约收益、收益率、保证金、仓位价值、资金费用、预估强平价等计算。
         </div>
       </div>
-
-      <div class="main-desc" id="currentAreaDesc">
-        以 USDT 结算的合约：支持开仓均价、合约收益、收益率、
-        保证金、仓位价值、资金费用、预估强平价等计算。
+      <div class="tool-select-wrap">
+        <span class="tool-select-label">计算项目：</span>
+        <select id="toolSelect" class="tool-select"></select>
       </div>
     </div>
 
-    <!-- 左卡片：输入区 -->
-    <section class="card">
-      <div class="card-header">
-        <div>
-          <div class="card-title" id="inputCardTitle">输入区</div>
-          <div class="card-subtitle" id="inputCardSub">根据选择的功能，输入相应的数据。</div>
+    <div id="areaPlaceholder" class="area-placeholder" style="display:none;">
+      该交易区的详细计算功能还在设计中。当前页面已为
+      <strong>U 本位合约</strong> 提供完整计算功能，您可以先在左侧切回 U 本位合约继续使用。
+    </div>
+
+    <div class="main-body" id="uMainBody">
+      <!-- 左：输入区 -->
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title" id="inputCardTitle">输入区：开仓均价</div>
+            <div class="card-subtitle" id="inputCardSub">输入合约面值、原持仓张数和均价、新开仓张数和成交均价，计算新的整体开仓均价。</div>
+          </div>
+          <div class="card-subtitle" id="inputCardTag">U 本位 · 合约工具</div>
         </div>
-      </div>
 
-      <p class="input-tip" id="inputTip">
-        选择上方的计算项目后，这里会显示对应的输入项说明和示例。
-      </p>
-
-      <div class="field-list" id="fieldList"></div>
-
-      <div class="btn-row">
-        <button class="btn-clear" id="btnClear">清空输入</button>
-        <button class="btn-calc" id="btnCalc">开始计算</button>
-      </div>
-
-      <p class="input-status" id="inputStatus"></p>
-    </section>
-
-    <!-- 右卡片：结果预览 + 历史记录 -->
-    <section class="card">
-      <div class="card-header">
-        <div>
-          <div class="card-title">结果预览</div>
-          <div class="card-subtitle">可复制 / 记录在飞书文档中使用。</div>
+        <div class="input-tip" id="inputTip">
+          格式示例：合约面值 0.01、原持仓 100 张、原持仓均价 1000，新开仓 50 张，新成交均价 2000。
         </div>
-      </div>
 
-      <div class="preview-main" id="previewMain">
-        这里会显示：计算结果 + 关键中间值。
-      </div>
+        <div class="field-list" id="fieldList">
+          <!-- JS 填充 -->
+        </div>
 
-      <div class="preview-extra" id="previewExtra">
-        <strong>公式说明：</strong>
-        选择上方功能后，点击“开始计算”，这里会展示对应的中文公式和代入数值写法，
-        方便复制到文档或截图保存。
-      </div>
+        <div class="btn-row">
+          <button class="btn" id="btnClear">清空输入</button>
+          <button class="btn btn-primary" id="btnCalc">开始计算</button>
+        </div>
 
-      <button id="btnCopy" class="copy-btn">复制结果</button>
+        <div class="status-text" id="statusText"></div>
+      </section>
 
-      <div class="history-block">
-        <div class="history-title">最近计算记录</div>
-        <div class="history-list" id="historyList">暂无记录。</div>
-      </div>
+      <!-- 右：结果预览 -->
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">结果预览</div>
+            <div class="card-subtitle">可复制 / 记录在飞书文档中使用。</div>
+          </div>
+          <button class="btn btn-small" id="btnCopy">复制结果</button>
+        </div>
 
-      <div class="version">
-        本工具仅作内部计算参考，请以系统实际数据为准。版本：v1.0（示例）
-      </div>
-    </section>
+        <div class="preview-main" id="previewMain">
+          这里会显示：计算结果 + 关键中间值。
+        </div>
+
+        <div class="preview-extra" id="previewExtra">
+          <strong>公式说明：</strong>选择上方的功能后，点击“开始计算”，这里会展示对应的中文公式，以及把你输入的数据代入后的公式，方便复制到文档或截图保存。
+        </div>
+
+        <div class="version">本工具仅作内部计算参考，请以系统实际数据为准。版本：v1.0（示例）</div>
+      </section>
+    </div>
   </main>
 </div>
 
-<script src="calculator.js"></script>
+<script>
+  // ---------- U 本位合约：全部计算项目 ----------
+  const uTools = [
+    {
+      id: "openPrice",
+      name: "开仓均价",
+      tip: "输入合约面值、原持仓张数与均价、新开仓张数与成交均价，计算新的整体开仓均价。",
+      subTitle: "输入合约面值、原持仓张数和均价、新开仓张数和成交均价，计算新的整体开仓均价。",
+      fields: [
+        { key: "faceValue", label: "合约面值", placeholder: "例如 0.01", suffix: "" },
+        { key: "oldQty", label: "原持仓张数", placeholder: "整数，例如 100", suffix: "张" },
+        { key: "oldPrice", label: "原持仓均价", placeholder: "例如 1000", suffix: "" },
+        { key: "newQty", label: "新开仓张数", placeholder: "整数，例如 50", suffix: "张" },
+        { key: "newPrice", label: "新成交均价", placeholder: "例如 2000", suffix: "" }
+      ],
+      calc: (d) => {
+        const f = d.faceValue, oc = d.oldQty, op = d.oldPrice, nc = d.newQty, np = d.newPrice;
+        if (oc + nc === 0) throw new Error("原持仓张数 + 新开仓张数 不能为 0。");
+        const numerator = f * oc * op + f * nc * np;
+        const denominator = f * (oc + nc);
+        const avg = numerator / denominator;
+        const main = `新的开仓均价 ≈ ${avg.toFixed(4)} U`;
+        const formula =
+          "开仓均价 = (合约面值 × 原持仓张数 × 原持仓均价 + 合约面值 × 新开仓张数 × 新成交均价) ÷ [合约面值 × (原持仓张数 + 新开仓张数)]";
+        const withVal =
+          `代入数值：\n` +
+          `开仓均价 = (${f} × ${oc} × ${op} + ${f} × ${nc} × ${np}) ÷ [${f} × (${oc} + ${nc})]`;
+        return { main, formula, withVal };
+      }
+    },
+    {
+      id: "fee",
+      name: "手续费",
+      tip: "输入合约面值、张数、开/平仓均价、手续费率，计算单次交易手续费。",
+      subTitle: "输入合约面值、张数、开/平仓均价、手续费率，计算单次交易手续费。",
+      fields: [
+        { key: "faceValue", label: "合约面值", placeholder: "例如 0.01", suffix: "" },
+        { key: "qty", label: "张数", placeholder: "整数，例如 100", suffix: "张" },
+        { key: "price", label: "开/平仓均价", placeholder: "例如 1000", suffix: "" },
+        { key: "rate", label: "手续费率", placeholder: "小数，例如 0.0005", suffix: "" }
+      ],
+      calc: (d) => {
+        const fee = d.faceValue * d.qty * d.price * d.rate;
+        const main = `本次手续费 ≈ ${fee.toFixed(6)} U`;
+        const formula = "手续费 = 合约面值 × 张数 × 开/平仓均价 × 手续费率";
+        const withVal =
+          `代入数值：\n` +
+          `手续费 = ${d.faceValue} × ${d.qty} × ${d.price} × ${d.rate}`;
+        return { main, formula, withVal };
+      }
+    },
+    {
+      id: "pnl",
+      name: "合约收益",
+      tip: "选择多仓或空仓，输入合约面值、张数、开仓均价和平仓均价，计算本次平仓收益。",
+      subTitle: "多仓：收益 = 面值 × 张数 × (平仓均价 - 开仓均价)；空仓相反。",
+      fields: [
+        {
+          key: "side",
+          label: "持仓方向",
+          type: "select",
+          options: [
+            { value: "long", label: "多仓" },
+            { value: "short", label: "空仓" }
+          ]
+        },
+        { key: "faceValue", label: "合约面值", placeholder: "例如 0.01", suffix: "" },
+        { key: "qty", label: "张数", placeholder: "整数，例如 100", suffix: "张" },
+        { key: "openPrice", label: "开仓均价", placeholder: "例如 1000", suffix: "" },
+        { key: "closePrice", label: "平仓均价", placeholder: "例如 1200", suffix: "" }
+      ],
+      calc: (d) => {
+        let pnl;
+        let mainFormula, withVal;
+        if (d.side === "long") {
+          pnl = d.faceValue * d.qty * (d.closePrice - d.openPrice);
+          mainFormula = "多仓：收益 = 合约面值 × 张数 × (平仓均价 - 开仓均价)";
+          withVal =
+            `代入数值：\n` +
+            `收益 = ${d.faceValue} × ${d.qty} × (${d.closePrice} - ${d.openPrice})`;
+        } else {
+          pnl = d.faceValue * d.qty * (d.openPrice - d.closePrice);
+          mainFormula = "空仓：收益 = 合约面值 × 张数 × (开仓均价 - 平仓均价)";
+          withVal =
+            `代入数值：\n` +
+            `收益 = ${d.faceValue} × ${d.qty} × (${d.openPrice} - ${d.closePrice})`;
+        }
+        const main = `本次平仓收益 ≈ ${pnl.toFixed(4)} U`;
+        return { main, formula: mainFormula, withVal };
+      }
+    },
+    {
+      id: "roi",
+      name: "收益率",
+      tip: "输入本次收益金额和开仓固定保证金，计算收益率（%）。",
+      subTitle: "收益率 = 收益 ÷ 开仓固定保证金 × 100%。",
+      fields: [
+        { key: "pnl", label: "收益金额", placeholder: "例如 50", suffix: "" },
+        { key: "margin", label: "开仓固定保证金", placeholder: "例如 200", suffix: "" }
+      ],
+      calc: (d) => {
+        if (d.margin === 0) throw new Error("开仓固定保证金不能为 0。");
+        const roi = (d.pnl / d.margin) * 100;
+        const main = `收益率 ≈ ${roi.toFixed(2)} %`;
+        const formula = "收益率 = 收益 ÷ 开仓固定保证金 × 100%";
+        const withVal =
+          `代入数值：\n` +
+          `收益率 = ${d.pnl} ÷ ${d.margin} × 100%`;
+        return { main, formula, withVal };
+      }
+    },
+    {
+      id: "initMargin",
+      name: "开仓保证金（初始）",
+      tip: "输入合约面值、开仓价格、张数和杠杆倍数，计算开仓所需初始保证金。",
+      subTitle: "开仓保证金 = 合约面值 × 开仓价格 × 张数 ÷ 杠杆倍数。",
+      fields: [
+        { key: "faceValue", label: "合约面值", placeholder: "例如 0.01", suffix: "" },
+        { key: "price", label: "开仓价格", placeholder: "例如 1000", suffix: "" },
+        { key: "qty", label: "张数", placeholder: "整数，例如 100", suffix: "张" },
+        { key: "leverage", label: "杠杆倍数", placeholder: "例如 10", suffix: "倍" }
+      ],
+      calc: (d) => {
+        if (d.leverage === 0) throw new Error("杠杆倍数不能为 0。");
+        const margin = d.faceValue * d.price * d.qty / d.leverage;
+        const main = `开仓需要的初始保证金 ≈ ${margin.toFixed(4)} U`;
+        const formula = "开仓保证金 = 合约面值 × 开仓价格 × 张数 ÷ 杠杆倍数";
+        const withVal =
+          `代入数值：\n` +
+          `开仓保证金 = ${d.faceValue} × ${d.price} × ${d.qty} ÷ ${d.leverage}`;
+        return { main, formula, withVal };
+      }
+    },
+    {
+      id: "maintMargin",
+      name: "维持保证金",
+      tip: "输入合约面值、仓位张数、维持保证金率和标记价格，计算当前需要的维持保证金。",
+      subTitle: "维持保证金 = 合约面值 × |张数| × 维持保证金率 × 标记价格。",
+      fields: [
+        { key: "faceValue", label: "合约面值", placeholder: "例如 0.01", suffix: "" },
+        { key: "qty", label: "仓位张数", placeholder: "可正可负，例如 100", suffix: "张" },
+        { key: "rate", label: "维持保证金率", placeholder: "小数，例如 0.005", suffix: "" },
+        { key: "markPrice", label: "标记价格", placeholder: "例如 1000", suffix: "" }
+      ],
+      calc: (d) => {
+        const absQty = Math.abs(d.qty);
+        const mm = d.faceValue * absQty * d.rate * d.markPrice;
+        const main = `当前维持保证金 ≈ ${mm.toFixed(4)} U`;
+        const formula = "维持保证金 = 合约面值 × |张数| × 维持保证金率 × 标记价格";
+        const withVal =
+          `代入数值：\n` +
+          `维持保证金 = ${d.faceValue} × ${absQty} × ${d.rate} × ${d.markPrice}`;
+        return { main, formula, withVal };
+      }
+    },
+    {
+      id: "marginRatio",
+      name: "当前保证金率",
+      tip: "输入保证金余额、未实现收益、合约面值、张数、标记价格、维持保证金率和手续费率，估算当前保证金率。",
+      subTitle: "保证金率 = (保证金余额 + 收益) ÷ [合约面值 × |张数| × 标记价格 × (维持保证金率 + 手续费率)]。",
+      fields: [
+        { key: "balance", label: "保证金余额", placeholder: "例如 100", suffix: "" },
+        { key: "pnl", label: "未实现收益", placeholder: "亏损用负数，例如 -10", suffix: "" },
+        { key: "faceValue", label: "合约面值", placeholder: "例如 0.01", suffix: "" },
+        { key: "qty", label: "仓位张数", placeholder: "可正可负，例如 100", suffix: "张" },
+        { key: "markPrice", label: "标记价格", placeholder: "例如 1000", suffix: "" },
+        { key: "maintRate", label: "维持保证金率", placeholder: "小数，例如 0.005", suffix: "" },
+        { key: "feeRate", label: "手续费率", placeholder: "小数，例如 0.0005", suffix: "" }
+      ],
+      calc: (d) => {
+        const absQty = Math.abs(d.qty);
+        const denom = d.faceValue * absQty * d.markPrice * (d.maintRate + d.feeRate);
+        if (denom === 0) throw new Error("分母为 0，请检查面值 / 张数 / 标记价格 / 维持保证金率 / 手续费率。");
+        const ratio = (d.balance + d.pnl) / denom;
+        const main = `当前保证金率 ≈ ${(ratio * 100).toFixed(2)} %`;
+        const formula = "保证金率 = (保证金余额 + 收益) ÷ [合约面值 × |张数| × 标记价格 × (维持保证金率 + 手续费率)]";
+        const withVal =
+          `代入数值：\n` +
+          `保证金率 = (${d.balance} + ${d.pnl}) ÷ [${d.faceValue} × ${absQty} × ${d.markPrice} × (${d.maintRate} + ${d.feeRate})]`;
+        return { main, formula, withVal };
+      }
+    },
+    {
+      id: "crossRatio",
+      name: "跨币种全仓维持保证金率",
+      tip: "输入有效保证金、维持保证金和减仓手续费，计算跨币种全仓模式下的维持保证金率。",
+      subTitle: "维持保证金率 = 有效保证金 ÷ (维持保证金 + 减仓手续费)。",
+      fields: [
+        { key: "effectiveMargin", label: "有效保证金", placeholder: "例如 100", suffix: "" },
+        { key: "maintMargin", label: "维持保证金", placeholder: "例如 80", suffix: "" },
+        { key: "closeFee", label: "减仓手续费", placeholder: "例如 2", suffix: "" }
+      ],
+      calc: (d) => {
+        const denom = d.maintMargin + d.closeFee;
+        if (denom === 0) throw new Error("维持保证金 + 减仓手续费 不能为 0。");
+        const ratio = d.effectiveMargin / denom;
+        const main = `跨币种全仓维持保证金率 ≈ ${(ratio * 100).toFixed(2)} %`;
+        const formula = "维持保证金率 = 有效保证金 ÷ (维持保证金 + 减仓手续费)";
+        const withVal =
+          `代入数值：\n` +
+          `维持保证金率 = ${d.effectiveMargin} ÷ (${d.maintMargin} + ${d.closeFee})`;
+        return { main, formula, withVal };
+      }
+    },
+    {
+      id: "positionValue",
+      name: "仓位价值",
+      tip: "输入合约面值、张数和标记价格，计算当前仓位价值。",
+      subTitle: "仓位价值 = 合约面值 × 张数 × 标记价格。",
+      fields: [
+        { key: "faceValue", label: "合约面值", placeholder: "例如 0.01", suffix: "" },
+        { key: "qty", label: "张数", placeholder: "整数，例如 100", suffix: "张" },
+        { key: "markPrice", label: "标记价格", placeholder: "例如 1000", suffix: "" }
+      ],
+      calc: (d) => {
+        const value = d.faceValue * d.qty * d.markPrice;
+        const main = `当前仓位价值 ≈ ${value.toFixed(4)} U`;
+        const formula = "仓位价值 = 合约面值 × 张数 × 标记价格";
+        const withVal =
+          `代入数值：\n` +
+          `仓位价值 = ${d.faceValue} × ${d.qty} × ${d.markPrice}`;
+        return { main, formula, withVal };
+      }
+    },
+    {
+      id: "funding",
+      name: "资金费用",
+      tip: "输入仓位价值和资金费率，计算当前资金费用。",
+      subTitle: "资金费用 = 仓位价值 × 资金费率。",
+      fields: [
+        { key: "positionValue", label: "仓位价值", placeholder: "例如 1000", suffix: "" },
+        { key: "fundingRate", label: "资金费率", placeholder: "小数，例如 0.0005", suffix: "" }
+      ],
+      calc: (d) => {
+        const fee = d.positionValue * d.fundingRate;
+        const main = `本次资金费用 ≈ ${fee.toFixed(6)} U`;
+        const formula = "资金费用 = 仓位价值 × 资金费率";
+        const withVal =
+          `代入数值：\n` +
+          `资金费用 = ${d.positionValue} × ${d.fundingRate}`;
+        return { main, formula, withVal };
+      }
+    },
+    {
+      id: "liqPrice",
+      name: "预估强平价",
+      tip: "选择多仓或空仓，并输入保证金余额、合约面值、张数、开仓均价、维持保证金率和手续费率，估算预估强平价（仅供参考）。",
+      subTitle: "多仓 / 空仓各有一条公式，结果仅供参考。",
+      fields: [
+        {
+          key: "side",
+          label: "持仓方向",
+          type: "select",
+          options: [
+            { value: "long", label: "多仓" },
+            { value: "short", label: "空仓" }
+          ]
+        },
+        { key: "balance", label: "保证金余额", placeholder: "例如 100", suffix: "" },
+        { key: "faceValue", label: "合约面值", placeholder: "例如 0.01", suffix: "" },
+        { key: "qty", label: "张数", placeholder: "整数，例如 100", suffix: "张" },
+        { key: "openPrice", label: "开仓均价", placeholder: "例如 1000", suffix: "" },
+        { key: "maintRate", label: "维持保证金率", placeholder: "小数，例如 0.005", suffix: "" },
+        { key: "feeRate", label: "手续费率", placeholder: "小数，例如 0.0005", suffix: "" }
+      ],
+      calc: (d) => {
+        const q = d.qty;
+        if (q === 0) throw new Error("张数不能为 0。");
+        let price, formula, withVal;
+        if (d.side === "long") {
+          const denom = d.faceValue * q * (d.maintRate + d.feeRate - 1);
+          if (denom === 0) throw new Error("分母为 0，请检查维持保证金率 + 手续费率 - 1。");
+          price = (d.balance - d.faceValue * q * d.openPrice) / denom;
+          formula =
+            "多仓预估强平价 = [保证金余额 - 合约面值 × 张数 × 开仓均价] ÷ [合约面值 × 张数 × (维持保证金率 + 手续费率 - 1)]";
+          withVal =
+            `代入数值：\n` +
+            `多仓预估强平价 = (${d.balance} - ${d.faceValue} × ${q} × ${d.openPrice}) ÷ [${d.faceValue} × ${q} × (${d.maintRate} + ${d.feeRate} - 1)]`;
+        } else {
+          const denom = d.faceValue * q * (d.maintRate + d.feeRate + 1);
+          if (denom === 0) throw new Error("分母为 0，请检查维持保证金率 + 手续费率 + 1。");
+          price = (d.balance + d.faceValue * q * d.openPrice) / denom;
+          formula =
+            "空仓预估强平价 = [保证金余额 + 合约面值 × 张数 × 开仓均价] ÷ [合约面值 × 张数 × (维持保证金率 + 手续费率 + 1)]";
+          withVal =
+            `代入数值：\n` +
+            `空仓预估强平价 = (${d.balance} + ${d.faceValue} × ${q} × ${d.openPrice}) ÷ [${d.faceValue} × ${q} × (${d.maintRate} + ${d.feeRate} + 1)]`;
+        }
+        const main = `预估强平价 ≈ ${price.toFixed(4)} U（仅供参考）`;
+        return { main, formula, withVal };
+      }
+    }
+  ];
+
+  // ---------- DOM 绑定 ----------
+  const areaListEl = document.getElementById("areaList");
+  const currentAreaTitleEl = document.getElementById("currentAreaTitle");
+  const currentAreaDescEl = document.getElementById("currentAreaDesc");
+  const areaPlaceholderEl = document.getElementById("areaPlaceholder");
+  const uMainBodyEl = document.getElementById("uMainBody");
+
+  const toolSelectEl = document.getElementById("toolSelect");
+  const fieldListEl = document.getElementById("fieldList");
+  const inputTipEl = document.getElementById("inputTip");
+  const inputCardTitleEl = document.getElementById("inputCardTitle");
+  const inputCardSubEl = document.getElementById("inputCardSub");
+
+  const btnClear = document.getElementById("btnClear");
+  const btnCalc = document.getElementById("btnCalc");
+  const btnCopy = document.getElementById("btnCopy");
+  const statusTextEl = document.getElementById("statusText");
+  const previewMainEl = document.getElementById("previewMain");
+  const previewExtraEl = document.getElementById("previewExtra");
+
+  let currentToolId = uTools[0].id;
+
+  function renderToolSelect() {
+    toolSelectEl.innerHTML = "";
+    uTools.forEach((tool) => {
+      const opt = document.createElement("option");
+      opt.value = tool.id;
+      opt.textContent = tool.name;
+      toolSelectEl.appendChild(opt);
+    });
+    toolSelectEl.value = currentToolId;
+  }
+
+  function renderFields(tool) {
+    fieldListEl.innerHTML = "";
+    tool.fields.forEach((f) => {
+      const row = document.createElement("div");
+      row.className = "field-row";
+
+      const label = document.createElement("div");
+      label.className = "field-label";
+      label.textContent = f.label;
+      row.appendChild(label);
+
+      const wrap = document.createElement("div");
+      wrap.className = "field-input-wrap";
+
+      if (f.type === "select") {
+        const sel = document.createElement("select");
+        sel.className = "field-select";
+        sel.id = "field_" + f.key;
+        f.options.forEach((opt) => {
+          const o = document.createElement("option");
+          o.value = opt.value;
+          o.textContent = opt.label;
+          sel.appendChild(o);
+        });
+        wrap.appendChild(sel);
+      } else {
+        const input = document.createElement("input");
+        input.className = "field-input";
+        input.type = "text";
+        input.placeholder = f.placeholder || "";
+        input.id = "field_" + f.key;
+        wrap.appendChild(input);
+
+        if (f.suffix) {
+          const suf = document.createElement("span");
+          suf.className = "field-suffix";
+          suf.textContent = f.suffix;
+          wrap.appendChild(suf);
+        }
+      }
+
+      row.appendChild(wrap);
+      fieldListEl.appendChild(row);
+    });
+  }
+
+  function updateToolUI() {
+    const tool = uTools.find((t) => t.id === currentToolId);
+    inputCardTitleEl.textContent = "输入区：" + tool.name;
+    inputCardSubEl.textContent = tool.subTitle;
+    inputTipEl.textContent = tool.tip;
+    renderFields(tool);
+
+    statusTextEl.textContent = "";
+    statusTextEl.classList.remove("status-error");
+    previewMainEl.textContent = "这里会显示：" + tool.name + " 的计算结果。";
+    previewExtraEl.innerHTML =
+      '<strong>公式说明：</strong>点击“开始计算”后，这里会显示该功能的公式以及代入数值的写法，方便复制到文档。';
+  }
+
+  function getCurrentData() {
+    const tool = uTools.find((t) => t.id === currentToolId);
+    const data = {};
+    tool.fields.forEach((f) => {
+      const el = document.getElementById("field_" + f.key);
+      if (!el) return;
+      if (f.type === "select") {
+        data[f.key] = el.value;
+      } else {
+        const v = el.value.trim();
+        data[f.key] = v === "" ? NaN : Number(v);
+      }
+    });
+    return data;
+  }
+
+  function checkNumbers(obj) {
+    for (const [k, v] of Object.entries(obj)) {
+      if (typeof v === "number" && Number.isNaN(v)) {
+        throw new Error("有必填项为空或不是数字，请检查输入。");
+      }
+    }
+  }
+
+  btnCalc.onclick = () => {
+    try {
+      const tool = uTools.find((t) => t.id === currentToolId);
+      const data = getCurrentData();
+      checkNumbers(data);
+      const { main, formula, withVal } = tool.calc(data);
+      previewMainEl.textContent = main;
+      previewExtraEl.innerHTML =
+        `<strong>公式：</strong>${formula}\n\n<strong>代入数值：</strong>\n${withVal}`;
+      statusTextEl.textContent = "计算完成。结果仅供参考。";
+      statusTextEl.classList.remove("status-error");
+    } catch (e) {
+      statusTextEl.textContent = e.message || "计算失败，请检查输入。";
+      statusTextEl.classList.add("status-error");
+    }
+  };
+
+  btnClear.onclick = () => {
+    Array.from(fieldListEl.querySelectorAll("input.field-input")).forEach((el) => {
+      el.value = "";
+    });
+    statusTextEl.textContent = "已清空输入。";
+    statusTextEl.classList.remove("status-error");
+    previewMainEl.textContent = "这里会显示：计算结果 + 关键中间值。";
+    previewExtraEl.innerHTML =
+      '<strong>公式说明：</strong>选择上方的功能后，点击“开始计算”，这里会展示对应的中文公式，以及把你输入的数据代入后的公式，方便复制到文档或截图保存。';
+  };
+
+  // 复制结果
+  btnCopy.onclick = async () => {
+    const text = previewMainEl.textContent + "\n\n" + previewExtraEl.textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      statusTextEl.textContent = "已复制当前结果到剪贴板。";
+      statusTextEl.classList.remove("status-error");
+    } catch {
+      statusTextEl.textContent = "复制失败，请手动选择文本复制。";
+      statusTextEl.classList.add("status-error");
+    }
+  };
+
+  // 一级交易区切换：目前只有 U 本位是可用，其它给提示
+  areaListEl.addEventListener("click", (e) => {
+    const item = e.target.closest(".area-item");
+    if (!item) return;
+    const area = item.dataset.area;
+
+    Array.from(areaListEl.querySelectorAll(".area-item")).forEach((el) => {
+      el.classList.toggle("active", el === item);
+    });
+
+    if (area === "uPerp") {
+      currentAreaTitleEl.textContent = "当前交易区：U 本位合约";
+      currentAreaDescEl.textContent =
+        "以 USDT 结算的合约：支持开仓均价、合约收益、收益率、保证金、仓位价值、资金费用、预估强平价等计算。";
+      areaPlaceholderEl.style.display = "none";
+      uMainBodyEl.style.display = "grid";
+    } else {
+      currentAreaTitleEl.textContent = "当前交易区：开发中";
+      currentAreaDescEl.textContent =
+        "该交易区的计算逻辑还在梳理中，目前仅开放 U 本位合约的全部功能。可以先切回 U 本位使用。";
+      areaPlaceholderEl.style.display = "block";
+      uMainBodyEl.style.display = "none";
+    }
+  });
+
+  // 初始化
+  renderToolSelect();
+  updateToolUI();
+
+  toolSelectEl.addEventListener("change", () => {
+    currentToolId = toolSelectEl.value;
+    updateToolUI();
+  });
+</script>
 </body>
 </html>
