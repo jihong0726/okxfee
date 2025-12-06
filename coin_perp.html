@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>交易计算工具 · 币本位合约</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
+        "Helvetica Neue", Arial, sans-serif;
+      background: radial-gradient(circle at top left, #1b2750 0, #050816 45%, #02030a 100%);
+      color: #e8f0ff;
+      min-height: 100vh;
+    }
+    .app-root {
+      max-width: 1440px;
+      margin: 24px auto;
+      padding: 0 24px 32px;
+      display: flex;
+      gap: 24px;
+    }
+
+    /* 侧边栏 */
+    .sidebar {
+      width: 320px;
+      background: radial-gradient(circle at top, #16213a 0, #050815 60%);
+      border-radius: 20px;
+      padding: 20px 20px 16px;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(86, 123, 255, 0.4);
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      letter-spacing: 0.02em;
+      color: #c5d4ff;
+      background: linear-gradient(135deg, rgba(76, 130, 255, 0.18), rgba(119, 148, 255, 0.05));
+      border: 1px solid rgba(118, 150, 255, 0.6);
+      margin-bottom: 16px;
+    }
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      margin-right: 6px;
+      background: #4fd1ff;
+      box-shadow: 0 0 8px rgba(79, 209, 255, 0.9);
+    }
+    .side-title {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .side-subtitle {
+      font-size: 13px;
+      line-height: 1.6;
+      color: #a9b6dd;
+      margin-bottom: 20px;
+    }
+    .side-section-title {
+      font-size: 13px;
+      color: #8f9ad0;
+      margin: 10px 0 8px;
+    }
+    .side-tip {
+      font-size: 11px;
+      color: #6f7bb0;
+      margin-top: 22px;
+      border-top: 1px dashed rgba(92, 119, 210, 0.5);
+      padding-top: 10px;
+      line-height: 1.6;
+    }
+
+    /* 主体 */
+    .main {
+      flex: 1;
+      background: radial-gradient(circle at top, #141c38 0, #050815 45%, #02030a 100%);
+      border-radius: 20px;
+      padding: 20px 22px 18px;
+      border: 1px solid rgba(86, 123, 255, 0.45);
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .main-headline {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .main-desc {
+      font-size: 13px;
+      color: #99a7de;
+    }
+
+    /* 顶部选择区：计算项目下拉 */
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .top-left {
+      font-size: 13px;
+      color: #9aa8e5;
+    }
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #c1cef8;
+    }
+    .select {
+      min-width: 220px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(112, 142, 230, 0.9);
+      background: rgba(4, 9, 32, 0.96);
+      color: #f5f7ff;
+      outline: none;
+      font-size: 13px;
+    }
+
+    /* 主体两列 */
+    .main-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
+      gap: 18px;
+      margin-top: 14px;
+    }
+    .card {
+      border-radius: 16px;
+      padding: 14px 16px 14px;
+      background: radial-gradient(circle at top left, #232c4a 0, #050815 65%);
+      border: 1px solid rgba(88, 120, 210, 0.65);
+      box-shadow: 0 12px 26px rgba(0, 0, 0, 0.55);
+      min-height: 260px;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .card-subtitle {
+      font-size: 11px;
+      color: #9cadf0;
+    }
+
+    .input-tip {
+      font-size: 12px;
+      color: #94a2df;
+      margin-bottom: 10px;
+      line-height: 1.6;
+    }
+    .field-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .field-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .field-label {
+      min-width: 120px;
+      font-size: 13px;
+      color: #cbd6ff;
+      text-align: right;
+    }
+    .field-input-wrap {
+      flex: 1;
+      position: relative;
+    }
+    .field-input,
+    .field-select {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(103, 133, 212, 0.9);
+      background: rgba(5, 10, 32, 0.9);
+      color: #f5f7ff;
+      font-size: 13px;
+      outline: none;
+      transition: all 0.16s ease-out;
+    }
+    .field-input:focus,
+    .field-select:focus {
+      border-color: #a9c4ff;
+      box-shadow: 0 0 0 1px rgba(80, 140, 255, 0.6);
+      background: rgba(7, 13, 38, 0.95);
+    }
+    .field-suffix {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      color: #9fb0f3;
+      pointer-events: none;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .btn {
+      border-radius: 999px;
+      padding: 7px 18px;
+      font-size: 13px;
+      border: 1px solid rgba(107, 136, 220, 0.9);
+      background: rgba(9, 14, 38, 0.9);
+      color: #d3dfff;
+      cursor: pointer;
+      transition: all 0.16s ease-out;
+    }
+    .btn:hover {
+      background: rgba(124, 157, 255, 0.15);
+      border-color: #9eb7ff;
+    }
+    .btn-primary {
+      background: radial-gradient(circle at top left, #3f83ff 0, #1b3da6 45%, #0b183a 100%);
+      border-color: #a3c3ff;
+      color: #ffffff;
+      box-shadow: 0 10px 26px rgba(50, 120, 255, 0.85);
+    }
+    .btn-primary:hover {
+      background: radial-gradient(circle at top left, #4b8fff 0, #2546b4 45%, #0e214a 100%);
+      border-color: #c4d6ff;
+    }
+
+    .status-text {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #93a4ff;
+      min-height: 16px;
+    }
+    .status-error {
+      color: #ff9a9a;
+    }
+
+    .preview-main {
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: rgba(3, 9, 32, 0.95);
+      border: 1px solid rgba(116, 144, 235, 0.7);
+      font-size: 13px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      min-height: 90px;
+      margin-bottom: 10px;
+    }
+    .preview-extra {
+      border-radius: 10px;
+      padding: 8px 11px;
+      background: rgba(10, 20, 56, 0.95);
+      border: 1px solid rgba(98, 130, 224, 0.8);
+      font-size: 11px;
+      color: #c3d0ff;
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+    .preview-extra strong {
+      color: #f0f4ff;
+      font-weight: 600;
+    }
+
+    .copy-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 6px;
+    }
+
+    .version {
+      font-size: 11px;
+      color: #7f8ae0;
+      text-align: right;
+      margin-top: 8px;
+      opacity: 0.85;
+    }
+
+    @media (max-width: 1100px) {
+      .app-root {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+      }
+      .main-body {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="app-root">
+  <!-- 侧边栏：这里只保留币本位说明，方便独立使用 -->
+  <aside class="sidebar">
+    <div class="badge">
+      <span class="badge-dot"></span>
+      交易计算助手 · 内部自用
+    </div>
+    <div class="side-title">交易计算工具</div>
+    <div class="side-subtitle">
+      当前页面：<strong>币本位合约</strong>。适用于面值 / 价格形式的反向合约，
+      支持合约收益、开仓保证金、仓位价值等计算。所有结果仅供参考，请以系统实际数据为准。
+    </div>
+
+    <div class="side-section-title">交易区</div>
+    <div class="side-subtitle">
+      · 币本位合约（当前页面）<br/>
+      · U 本位 / 现货等建议放在单独页面，便于维护。
+    </div>
+
+    <div class="side-tip">
+      提示：本页面为本地计算工具，不会请求账号数据。可以固定在浏览器标签页中长期打开使用。
+    </div>
+  </aside>
+
+  <!-- 主体 -->
+  <main class="main">
+    <div class="main-headline">当前交易区：币本位合约</div>
+    <div class="main-desc">
+      以币种结算的反向合约：面值为固定 USD 名义价值，保证金和收益以币计价。
+      下面的公式基于「面值 / 价格」的标准写法，可按你的 Excel 再做校对与扩展。
+    </div>
+
+    <div class="top-row">
+      <div class="top-left">
+        先选择一个 <strong>计算项目</strong>，再在左侧输入区填写数据。
+      </div>
+      <div class="top-right">
+        <span>计算项目：</span>
+        <select id="toolSelect" class="select"></select>
+      </div>
+    </div>
+
+    <div class="main-body">
+      <!-- 左：输入区 -->
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title" id="inputCardTitle">输入区：合约收益</div>
+            <div class="card-subtitle" id="inputCardSub">
+              选择多仓 / 空仓，输入合约面值、张数、开仓价与平仓价，计算此次平仓收益（以币计）。
+            </div>
+          </div>
+          <div class="card-subtitle" id="inputCardTag">币本位 · 反向合约工具</div>
+        </div>
+
+        <div class="input-tip" id="inputTip">
+          示例：面值 100 USD、张数 10 张、多仓，开仓价 30,000，平仓价 35,000。
+        </div>
+
+        <div class="field-list" id="fieldList"></div>
+
+        <div class="btn-row">
+          <button class="btn" id="btnClear">清空输入</button>
+          <button class="btn btn-primary" id="btnCalc">开始计算</button>
+        </div>
+
+        <div class="status-text" id="statusText"></div>
+      </section>
+
+      <!-- 右：结果预览 -->
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">结果预览</div>
+            <div class="card-subtitle">可复制 / 记录在飞书或文档中使用。</div>
+          </div>
+        </div>
+
+        <div class="copy-row">
+          <button class="btn" id="btnCopy">复制结果</button>
+        </div>
+
+        <div class="preview-main" id="previewMain">
+          这里会显示：计算结果。
+        </div>
+
+        <div class="preview-extra" id="previewExtra">
+          <strong>公式：</strong>选择上方的计算项目，点击“开始计算”后，这里会展示对应的中文公式，
+          以及代入数值后的写法，方便复制。
+        </div>
+
+        <div class="version">
+          本工具仅作内部计算参考，请以系统实际数据为准。版本：v0.1（币本位示例）
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+  // ============ 币本位合约 · 配置 ============
+
+  const coinTools = [
+    {
+      id: "pnl",
+      name: "合约收益",
+      tip: "选择多仓 / 空仓，输入合约面值、张数、开仓价与平仓价，计算此次平仓收益（以币计）。",
+      subTitle: "标准反向合约：多仓 PnL = 面值 × 张数 × (1/开仓价 - 1/平仓价)，空仓相反。",
+      fields: [
+        {
+          key: "side",
+          label: "持仓方向",
+          type: "select",
+          options: [
+            { value: "long", label: "多仓" },
+            { value: "short", label: "空仓" }
+          ]
+        },
+        { key: "faceValue", label: "合约面值（USD）", placeholder: "例如 100", suffix: "USD" },
+        { key: "qty", label: "张数", placeholder: "整数，例如 10", suffix: "张" },
+        { key: "openPrice", label: "开仓价格", placeholder: "例如 30000", suffix: "" },
+        { key: "closePrice", label: "平仓价格", placeholder: "例如 35000", suffix: "" }
+      ],
+      calc: (d) => {
+        const FV = d.faceValue;
+        const Q = d.qty;
+        const O = d.openPrice;
+        const C = d.closePrice;
+
+        if (O <= 0 || C <= 0) {
+          throw new Error("开仓价格和平仓价格必须大于 0。");
+        }
+
+        let pnl;
+        let formula, withVal;
+        if (d.side === "long") {
+          // 多仓：PnL(币) = 面值 × 张数 × (1/开仓价 - 1/平仓价)
+          pnl = FV * Q * (1 / O - 1 / C);
+          formula = "多仓：收益（币） = 合约面值 × 张数 × (1/开仓价 - 1/平仓价)";
+          withVal =
+            "合约收益 = " +
+            `${FV} × ${Q} × (1/${O} - 1/${C})`;
+        } else {
+          // 空仓：PnL(币) = 面值 × 张数 × (1/平仓价 - 1/开仓价)
+          pnl = FV * Q * (1 / C - 1 / O);
+          formula = "空仓：收益（币） = 合约面值 × 张数 × (1/平仓价 - 1/开仓价)";
+          withVal =
+            "合约收益 = " +
+            `${FV} × ${Q} × (1/${C} - 1/${O})`;
+        }
+
+        const main = `本次平仓合约收益 ≈ ${pnl.toFixed(8)} 币`;
+
+        const copyBlock =
+          `${formula}\n` +
+          `${withVal}\n` +
+          `${main}`;
+
+        return { main, formula, withVal, copyBlock };
+      }
+    },
+    {
+      id: "initMargin",
+      name: "开仓保证金（初始）",
+      tip: "输入合约面值、张数、开仓价格和杠杆倍数，计算开仓需要的初始保证金（以币计）。",
+      subTitle: "反向合约：初始保证金（币） = 面值 × 张数 ÷ (杠杆倍数 × 开仓价格)。",
+      fields: [
+        { key: "faceValue", label: "合约面值（USD）", placeholder: "例如 100", suffix: "USD" },
+        { key: "qty", label: "张数", placeholder: "整数，例如 10", suffix: "张" },
+        { key: "openPrice", label: "开仓价格", placeholder: "例如 30000", suffix: "" },
+        { key: "leverage", label: "杠杆倍数", placeholder: "例如 20", suffix: "倍" }
+      ],
+      calc: (d) => {
+        const FV = d.faceValue;
+        const Q = d.qty;
+        const P = d.openPrice;
+        const L = d.leverage;
+
+        if (P <= 0 || L <= 0) {
+          throw new Error("开仓价格和杠杆倍数必须大于 0。");
+        }
+
+        const margin = FV * Q / (L * P);
+
+        const main = `开仓需要的初始保证金 ≈ ${margin.toFixed(8)} 币`;
+        const formula = "开仓保证金（币） = 合约面值 × 张数 ÷ (杠杆倍数 × 开仓价格)";
+        const withVal =
+          "开仓保证金 = " +
+          `${FV} × ${Q} ÷ (${L} × ${P})`;
+
+        const copyBlock =
+          `${formula}\n` +
+          `${withVal}\n` +
+          `${main}`;
+
+        return { main, formula, withVal, copyBlock };
+      }
+    },
+    {
+      id: "positionValue",
+      name: "仓位价值",
+      tip: "输入合约面值、张数和标记价格，计算仓位名义价值（USD）与折算为币的价值。",
+      subTitle: "名义价值（USD） = 面值 × 张数；仓位价值（币） = 名义价值 ÷ 标记价格。",
+      fields: [
+        { key: "faceValue", label: "合约面值（USD）", placeholder: "例如 100", suffix: "USD" },
+        { key: "qty", label: "张数", placeholder: "整数，例如 10", suffix: "张" },
+        { key: "markPrice", label: "标记价格", placeholder: "例如 30000", suffix: "" }
+      ],
+      calc: (d) => {
+        const FV = d.faceValue;
+        const Q = d.qty;
+        const M = d.markPrice;
+
+        if (M <= 0) {
+          throw new Error("标记价格必须大于 0。");
+        }
+
+        const notional = FV * Q;          // USD
+        const valueCoin = notional / M;   // 币
+
+        const main =
+          `名义价值 ≈ ${notional.toFixed(4)} USD，` +
+          `折算仓位价值 ≈ ${valueCoin.toFixed(8)} 币`;
+
+        const formula =
+          "名义价值（USD） = 合约面值 × 张数；仓位价值（币） = 名义价值 ÷ 标记价格";
+        const withVal =
+          `名义价值 = ${FV} × ${Q}\n` +
+          `仓位价值 = (${FV} × ${Q}) ÷ ${M}`;
+
+        const copyBlock =
+          `${formula}\n` +
+          `${withVal}\n` +
+          `${main}`;
+
+        return { main, formula, withVal, copyBlock };
+      }
+    }
+  ];
+
+  // ============ DOM & 渲染逻辑 ============
+
+  const toolSelectEl = document.getElementById("toolSelect");
+  const fieldListEl = document.getElementById("fieldList");
+  const inputCardTitleEl = document.getElementById("inputCardTitle");
+  const inputCardSubEl = document.getElementById("inputCardSub");
+  const inputTipEl = document.getElementById("inputTip");
+  const statusTextEl = document.getElementById("statusText");
+  const previewMainEl = document.getElementById("previewMain");
+  const previewExtraEl = document.getElementById("previewExtra");
+  const btnClear = document.getElementById("btnClear");
+  const btnCalc = document.getElementById("btnCalc");
+  const btnCopy = document.getElementById("btnCopy");
+
+  let currentToolId = coinTools[0].id;
+  let lastCopyBlock = "";
+
+  function initToolSelect() {
+    toolSelectEl.innerHTML = "";
+    coinTools.forEach(tool => {
+      const opt = document.createElement("option");
+      opt.value = tool.id;
+      opt.textContent = tool.name;
+      toolSelectEl.appendChild(opt);
+    });
+    toolSelectEl.value = currentToolId;
+  }
+
+  function renderFields(tool) {
+    fieldListEl.innerHTML = "";
+    tool.fields.forEach(f => {
+      const row = document.createElement("div");
+      row.className = "field-row";
+
+      const label = document.createElement("div");
+      label.className = "field-label";
+      label.textContent = f.label;
+      row.appendChild(label);
+
+      const wrap = document.createElement("div");
+      wrap.className = "field-input-wrap";
+
+      if (f.type === "select") {
+        const sel = document.createElement("select");
+        sel.className = "field-select";
+        sel.id = "field_" + f.key;
+        f.options.forEach(opt => {
+          const o = document.createElement("option");
+          o.value = opt.value;
+          o.textContent = opt.label;
+          sel.appendChild(o);
+        });
+        wrap.appendChild(sel);
+      } else {
+        const input = document.createElement("input");
+        input.className = "field-input";
+        input.type = "text";
+        input.placeholder = f.placeholder || "";
+        input.id = "field_" + f.key;
+        wrap.appendChild(input);
+
+        if (f.suffix) {
+          const suf = document.createElement("span");
+          suf.className = "field-suffix";
+          suf.textContent = f.suffix;
+          wrap.appendChild(suf);
+        }
+      }
+
+      row.appendChild(wrap);
+      fieldListEl.appendChild(row);
+    });
+  }
+
+  function updateToolUI() {
+    const tool = coinTools.find(t => t.id === currentToolId);
+    inputCardTitleEl.textContent = "输入区：" + tool.name;
+    inputCardSubEl.textContent = tool.subTitle;
+    inputTipEl.textContent = tool.tip;
+
+    renderFields(tool);
+
+    statusTextEl.textContent = "";
+    statusTextEl.classList.remove("status-error");
+    previewMainEl.textContent = "这里会显示：" + tool.name + " 的计算结果。";
+    previewExtraEl.innerHTML =
+      "<strong>公式：</strong>点击“开始计算”后，这里会显示该功能的公式以及代入数值写法，方便复制。";
+    lastCopyBlock = "";
+  }
+
+  function getCurrentData() {
+    const tool = coinTools.find(t => t.id === currentToolId);
+    const data = {};
+    tool.fields.forEach(f => {
+      const el = document.getElementById("field_" + f.key);
+      if (!el) return;
+      if (f.type === "select") {
+        data[f.key] = el.value;
+      } else {
+        const v = el.value.trim();
+        data[f.key] = v === "" ? NaN : Number(v);
+      }
+    });
+    return data;
+  }
+
+  function checkNumbers(obj) {
+    for (const [k, v] of Object.entries(obj)) {
+      if (typeof v === "number" && Number.isNaN(v)) {
+        throw new Error("有必填项为空或不是数字，请检查输入。");
+      }
+    }
+  }
+
+  // 事件绑定
+  toolSelectEl.addEventListener("change", () => {
+    currentToolId = toolSelectEl.value;
+    updateToolUI();
+  });
+
+  btnCalc.onclick = () => {
+    try {
+      const tool = coinTools.find(t => t.id === currentToolId);
+      const data = getCurrentData();
+      checkNumbers(data);
+      const { main, formula, withVal, copyBlock } = tool.calc(data);
+
+      previewMainEl.textContent = main;
+      previewExtraEl.innerHTML =
+        `<strong>公式：</strong>${formula}\n\n<strong>代入数值：</strong>\n${withVal}`;
+      statusTextEl.textContent = "计算完成。结果仅供参考。";
+      statusTextEl.classList.remove("status-error");
+      lastCopyBlock = copyBlock || `${formula}\n${withVal}\n${main}`;
+    } catch (e) {
+      statusTextEl.textContent = e.message || "计算失败，请检查输入。";
+      statusTextEl.classList.add("status-error");
+    }
+  };
+
+  btnClear.onclick = () => {
+    Array.from(fieldListEl.querySelectorAll("input.field-input")).forEach(el => {
+      el.value = "";
+    });
+    statusTextEl.textContent = "已清空输入。";
+    statusTextEl.classList.remove("status-error");
+    previewMainEl.textContent = "这里会显示：计算结果。";
+    previewExtraEl.innerHTML =
+      "<strong>公式：</strong>选择上方的计算项目，点击“开始计算”后，这里会展示对应的中文公式以及代入数值的写法，方便复制。";
+    lastCopyBlock = "";
+  };
+
+  btnCopy.onclick = async () => {
+    if (!lastCopyBlock) {
+      statusTextEl.textContent = "暂无可复制内容，请先完成一次计算。";
+      statusTextEl.classList.remove("status-error");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(lastCopyBlock);
+      statusTextEl.textContent = "已复制当前结果到剪贴板。";
+      statusTextEl.classList.remove("status-error");
+    } catch {
+      statusTextEl.textContent = "复制失败，可以手动框选结果区域再复制。";
+      statusTextEl.classList.add("status-error");
+    }
+  };
+
+  // 初始化
+  initToolSelect();
+  updateToolUI();
+</script>
+</body>
+</html>
