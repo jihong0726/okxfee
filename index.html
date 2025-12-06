@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <title>交易计算工具（U 本位合约）</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>交易计算工具 · U 本位合约</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <style>
     * {
       box-sizing: border-box;
@@ -17,6 +17,9 @@
       color: #e8f0ff;
       min-height: 100vh;
     }
+    button, input, select {
+      font-family: inherit;
+    }
     .app-root {
       max-width: 1440px;
       margin: 24px auto;
@@ -24,6 +27,9 @@
       display: flex;
       gap: 24px;
     }
+
+    /* 左侧栏 */
+
     .sidebar {
       width: 320px;
       background: radial-gradient(circle at top, #16213a 0, #050815 60%);
@@ -109,6 +115,8 @@
       line-height: 1.6;
     }
 
+    /* 主区 */
+
     .main {
       flex: 1;
       background: radial-gradient(circle at top, #141c38 0, #050815 45%, #02030a 100%);
@@ -120,6 +128,12 @@
       flex-direction: column;
       gap: 16px;
     }
+    .main-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
     .main-headline {
       font-size: 18px;
       font-weight: 600;
@@ -130,33 +144,30 @@
       color: #99a7de;
     }
 
-    .pill-list {
+    .tool-select-row {
       display: flex;
-      flex-wrap: wrap;
+      align-items: center;
       gap: 8px;
-      margin-top: 12px;
-      margin-bottom: 4px;
-    }
-    .pill-btn {
-      border-radius: 999px;
-      padding: 6px 14px;
-      border: 1px solid rgba(107, 133, 209, 0.8);
-      background: transparent;
-      color: #c4d1ff;
       font-size: 13px;
-      cursor: pointer;
-      transition: all 0.18s ease-out;
+      color: #a9b6ff;
+    }
+    .tool-select-row label {
       white-space: nowrap;
     }
-    .pill-btn:hover {
-      border-color: #8eb2ff;
-      background: rgba(142, 178, 255, 0.13);
-    }
-    .pill-btn.active {
-      background: radial-gradient(circle at top left, #407bff 0, #1b2b6a 45%, #0b122c 100%);
-      border-color: #9bc3ff;
-      box-shadow: 0 8px 22px rgba(36, 112, 255, 0.8);
-      color: #f4f7ff;
+    .tool-select {
+      min-width: 210px;
+      border-radius: 999px;
+      border: 1px solid rgba(120, 148, 230, 0.9);
+      background: rgba(8, 13, 40, 0.95);
+      padding: 7px 12px;
+      color: #e5ebff;
+      font-size: 13px;
+      outline: none;
+      appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, #9bb6ff 50%), linear-gradient(135deg, #9bb6ff 50%, transparent 50%);
+      background-position: calc(100% - 14px) center, calc(100% - 9px) center;
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
     }
 
     .main-body {
@@ -178,7 +189,6 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 8px;
-      gap: 8px;
     }
     .card-title {
       font-size: 14px;
@@ -281,20 +291,6 @@
       border-color: #c4d6ff;
     }
 
-    .btn-copy {
-      padding: 5px 12px;
-      font-size: 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(140, 164, 245, 0.9);
-      background: rgba(10, 20, 60, 0.9);
-      color: #dde5ff;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    .btn-copy:hover {
-      background: rgba(140, 164, 245, 0.2);
-    }
-
     .status-text {
       margin-top: 6px;
       font-size: 12px;
@@ -305,7 +301,9 @@
       color: #ff9a9a;
     }
 
-    .preview-main {
+    /* 右侧预览 + 历史 */
+
+    .preview-block {
       border-radius: 12px;
       padding: 10px 12px;
       background: rgba(3, 9, 32, 0.95);
@@ -313,23 +311,96 @@
       font-size: 13px;
       line-height: 1.7;
       white-space: pre-wrap;
-      min-height: 70px;
-      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+    .preview-label {
+      font-size: 12px;
+      color: #9fb2ff;
+      margin-bottom: 4px;
+    }
+    .preview-text {
+      font-size: 13px;
+      color: #e6ebff;
+    }
+    .preview-result {
+      font-size: 14px;
+      font-weight: 600;
+      color: #ffffff;
     }
 
-    .preview-extra {
-      border-radius: 10px;
-      padding: 8px 11px;
-      background: rgba(10, 20, 56, 0.95);
-      border: 1px solid rgba(98, 130, 224, 0.8);
-      font-size: 11px;
-      color: #c3d0ff;
-      line-height: 1.8;
-      white-space: pre-wrap;
+    .preview-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
     }
-    .preview-extra strong {
-      color: #f0f4ff;
-      font-weight: 600;
+    .preview-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-ghost {
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      border: 1px solid rgba(132, 159, 240, 0.9);
+      background: rgba(8, 13, 40, 0.9);
+      color: #cfd9ff;
+      cursor: pointer;
+    }
+    .btn-ghost:hover {
+      background: rgba(135, 169, 255, 0.15);
+    }
+
+    .history-card {
+      margin-top: 10px;
+      border-radius: 12px;
+      padding: 8px 11px;
+      background: rgba(7, 13, 42, 0.95);
+      border: 1px solid rgba(101, 130, 226, 0.8);
+      font-size: 12px;
+      color: #c3d0ff;
+    }
+    .history-title {
+      font-size: 12px;
+      color: #aebdff;
+      margin-bottom: 4px;
+    }
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 4px 6px;
+      border-radius: 8px;
+      background: rgba(8, 15, 48, 0.9);
+    }
+    .history-main {
+      font-size: 12px;
+      color: #e1e6ff;
+      margin-bottom: 2px;
+    }
+    .history-sub {
+      font-size: 11px;
+      color: #a0afe6;
+    }
+    .history-btn {
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 11px;
+      border: 1px solid rgba(143, 172, 255, 0.9);
+      background: transparent;
+      color: #cfd7ff;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .history-btn:hover {
+      background: rgba(143, 172, 255, 0.18);
     }
 
     .version {
@@ -366,7 +437,7 @@
 </head>
 <body>
 <div class="app-root">
-  <!-- 侧边栏 -->
+  <!-- 左侧 -->
   <aside class="sidebar">
     <div class="badge">
       <span class="badge-dot"></span>
@@ -374,7 +445,7 @@
     </div>
     <div class="side-title">交易计算工具</div>
     <div class="side-subtitle">
-      一个页面搞定：U 本位 / 币本位合约、现货杠杆、现货开仓均价、期权多种计算。先选交易区，再选计算项目，右侧输入数据即可看到结果和中文公式说明。
+      一个页面搞定：U 本位 / 币本位合约、现货杠杆、现货开仓均价、期权多种计算。先选择交易区，再选择计算项目，右侧输入数据即可看到结果和中文公式说明。
     </div>
 
     <div class="side-section-title">交易区</div>
@@ -406,20 +477,19 @@
     </div>
   </aside>
 
-  <!-- 主体 -->
+  <!-- 右侧主内容（当前只实现 U 本位合约） -->
   <main class="main">
-    <div>
-      <div class="main-headline" id="currentAreaTitle">当前交易区：U 本位合约</div>
-      <div class="main-desc" id="currentAreaDesc">
-        以 USDT 结算的合约：支持开仓均价、合约收益、收益率、保证金、仓位价值、资金费率、预估强平价等计算。
+    <div class="main-top">
+      <div>
+        <div class="main-headline" id="currentAreaTitle">当前交易区：U 本位合约</div>
+        <div class="main-desc" id="currentAreaDesc">
+          以 USDT 结算的合约：支持开仓均价、合约收益、收益率、保证金、仓位价值、资金费率、预估强平价等计算。
+        </div>
       </div>
 
-      <!-- 二级：U 本位功能下拉 -->
-      <div style="margin-top: 10px; display:flex; align-items:center; gap:8px;">
-        <div class="card-subtitle">计算项目：</div>
-        <select id="uToolSelect" class="field-select" style="max-width:260px;">
-          <!-- JS 填充 -->
-        </select>
+      <div class="tool-select-row">
+        <label for="toolSelect">计算项目：</label>
+        <select id="toolSelect" class="tool-select"></select>
       </div>
     </div>
 
@@ -443,9 +513,7 @@
           格式示例：合约面值 0.01、原持仓 100 张、原持仓均价 1000，新开仓 50 张，新成交均价 2000。
         </div>
 
-        <div class="field-list" id="fieldList">
-          <!-- JS 填充 -->
-        </div>
+        <div class="field-list" id="fieldList"></div>
 
         <div class="btn-row">
           <button class="btn" id="btnClear">清空输入</button>
@@ -455,24 +523,41 @@
         <div class="status-text" id="statusText"></div>
       </section>
 
-      <!-- 右：公式 + 结果 -->
+      <!-- 右：结果 + 公式 + 历史 -->
       <section class="card">
-        <div class="card-header">
+        <div class="preview-header-row">
           <div>
             <div class="card-title">结果预览</div>
             <div class="card-subtitle">可复制 / 记录在飞书文档中使用。</div>
           </div>
-          <button class="btn-copy" id="btnCopyResult">复制结果</button>
+          <div class="preview-actions">
+            <button class="btn-ghost" id="btnCopyResult">复制结果</button>
+          </div>
         </div>
 
-        <!-- 先显示公式与代入数值 -->
-        <div class="preview-extra" id="previewExtra">
-          <strong>公式说明：</strong>选择上方的功能后，点击“开始计算”，这里会展示对应的中文公式，以及把你输入的数据代入后的公式，方便复制到文档或截图保存。
+        <!-- 先显示公式 + 代入数值 -->
+        <div class="preview-block">
+          <div class="preview-label">公式：</div>
+          <div class="preview-text" id="formulaText">这里会显示当前功能对应的中文公式。</div>
+          <div style="height:6px;"></div>
+          <div class="preview-label">代入数值：</div>
+          <div class="preview-text" id="withValText">点击“开始计算”后，这里会显示把你输入的数据代入后的写法。</div>
         </div>
 
         <!-- 再显示最终结果 -->
-        <div class="preview-main" id="previewMain">
-          这里会显示：计算结果 + 关键中间值。
+        <div class="preview-block">
+          <div class="preview-label">当前结果：</div>
+          <div class="preview-text preview-result" id="previewMain">
+            这里会显示：计算结果 + 关键中间值。
+          </div>
+        </div>
+
+        <!-- 最近计算记录 -->
+        <div class="history-card">
+          <div class="history-title">最近计算记录（最多保留 5 条）</div>
+          <div class="history-list" id="historyList">
+            <div class="history-sub">暂时还没有记录。完成一次计算后，这里会展示最近的结果，方便对比和恢复输入。</div>
+          </div>
         </div>
 
         <div class="version">本工具仅作内部计算参考，请以系统实际数据为准。版本：v1.0（示例）</div>
@@ -482,7 +567,7 @@
 </div>
 
 <script>
-  // ---------- 配置：U 本位合约所有计算项目 ----------
+  // ------------ U 本位合约：全部计算项目配置 ------------
   const uTools = [
     {
       id: "openPrice",
@@ -505,31 +590,29 @@
         const denominator = f * (oc + nc);
         const avg = numerator / denominator;
         const main = `新的开仓均价 ≈ ${avg.toFixed(4)} U`;
-        const formula = "开仓均价 = (合约面值 × 原持仓张数 × 原持仓均价 + 合约面值 × 新开仓张数 × 新开仓成交均价) ÷ [合约面值 × (原持仓张数 + 新开仓张数)]";
-        const withExpr =
-          `开仓均价 = (${f} × ${oc} × ${op} + ${f} × ${nc} × ${np}) ÷ [${f} × (${oc} + ${nc})]`;
-        return { main, formula, withExpr };
+        const formula = "开仓均价 = (合约面值 × 原持仓张数 × 原持仓均价 + 合约面值 × 新开仓张数 × 新成交均价) ÷ [合约面值 × (原持仓张数 + 新开仓张数)]";
+        const withVal = `开仓均价 = (${f} × ${oc} × ${op} + ${f} × ${nc} × ${np}) ÷ [${f} × (${oc} + ${nc})]`;
+        return { main, formula, withVal };
       }
     },
     {
       id: "fee",
       name: "手续费",
-      tip: "输入合约面值、张数、开/平仓均价、手续费率（%），计算单次交易手续费。",
-      subTitle: "输入合约面值、张数、开/平仓均价、手续费率（%），计算单次交易手续费。",
+      tip: "输入合约面值、张数、开/平仓均价、手续费率（按 % 输入），计算单次交易手续费。",
+      subTitle: "手续费 = 合约面值 × 张数 × 开/平仓均价 × 手续费率。",
       fields: [
         { key: "faceValue", label: "合约面值", placeholder: "例如 0.01", suffix: "" },
         { key: "qty", label: "张数", placeholder: "整数，例如 100", suffix: "张" },
         { key: "price", label: "开/平仓均价", placeholder: "例如 1000", suffix: "" },
-        { key: "rate", label: "手续费率", placeholder: "例如 0.05", suffix: "%" }
+        { key: "rate", label: "手续费率", placeholder: "例如 0.05（代表 0.05%）", suffix: "%" }
       ],
       calc: (d) => {
         const rateDec = d.rate / 100; // 百分比转小数
         const fee = d.faceValue * d.qty * d.price * rateDec;
         const main = `本次手续费 ≈ ${fee.toFixed(6)} U`;
         const formula = "手续费 = 合约面值 × 张数 × 开/平仓均价 × 手续费率";
-        const withExpr =
-          `手续费 = ${d.faceValue} × ${d.qty} × ${d.price} × ${d.rate}%`;
-        return { main, formula, withExpr };
+        const withVal = `手续费 = ${d.faceValue} × ${d.qty} × ${d.price} × ${rateDec}`;
+        return { main, formula, withVal };
       }
     },
     {
@@ -554,20 +637,18 @@
       ],
       calc: (d) => {
         let pnl;
-        let formula, withExpr;
+        let mainFormula, withVal;
         if (d.side === "long") {
           pnl = d.faceValue * d.qty * (d.closePrice - d.openPrice);
-          formula = "多仓：收益 = 合约面值 × 张数 × (平仓均价 - 开仓均价)";
-          withExpr =
-            `收益 = ${d.faceValue} × ${d.qty} × (${d.closePrice} - ${d.openPrice})`;
+          mainFormula = "多仓：收益 = 合约面值 × 张数 × (平仓均价 - 开仓均价)";
+          withVal = `收益 = ${d.faceValue} × ${d.qty} × (${d.closePrice} - ${d.openPrice})`;
         } else {
           pnl = d.faceValue * d.qty * (d.openPrice - d.closePrice);
-          formula = "空仓：收益 = 合约面值 × 张数 × (开仓均价 - 平仓均价)";
-          withExpr =
-            `收益 = ${d.faceValue} × ${d.qty} × (${d.openPrice} - ${d.closePrice})`;
+          mainFormula = "空仓：收益 = 合约面值 × 张数 × (开仓均价 - 平仓均价)";
+          withVal = `收益 = ${d.faceValue} × ${d.qty} × (${d.openPrice} - ${d.closePrice})`;
         }
         const main = `本次平仓收益 ≈ ${pnl.toFixed(4)} U`;
-        return { main, formula, withExpr };
+        return { main, formula: mainFormula, withVal };
       }
     },
     {
@@ -576,17 +657,16 @@
       tip: "输入本次收益金额和开仓固定保证金，计算收益率（%）。",
       subTitle: "收益率 = 收益 ÷ 开仓固定保证金 × 100%。",
       fields: [
-        { key: "pnl", label: "收益金额", placeholder: "例如 50", suffix: "" },
-        { key: "margin", label: "开仓固定保证金", placeholder: "例如 200", suffix: "" }
+        { key: "pnl", label: "收益金额", placeholder: "例如 50", suffix: "U" },
+        { key: "margin", label: "开仓固定保证金", placeholder: "例如 200", suffix: "U" }
       ],
       calc: (d) => {
         if (d.margin === 0) throw new Error("开仓固定保证金不能为 0。");
         const roi = (d.pnl / d.margin) * 100;
         const main = `收益率 ≈ ${roi.toFixed(2)} %`;
         const formula = "收益率 = 收益 ÷ 开仓固定保证金 × 100%";
-        const withExpr =
-          `收益率 = ${d.pnl} ÷ ${d.margin} × 100%`;
-        return { main, formula, withExpr };
+        const withVal = `收益率 = ${d.pnl} ÷ ${d.margin} × 100%`;
+        return { main, formula, withVal };
       }
     },
     {
@@ -602,12 +682,11 @@
       ],
       calc: (d) => {
         if (d.leverage === 0) throw new Error("杠杆倍数不能为 0。");
-        const margin = (d.faceValue * d.price * d.qty) / d.leverage;
+        const margin = d.faceValue * d.price * d.qty / d.leverage;
         const main = `开仓需要的初始保证金 ≈ ${margin.toFixed(4)} U`;
         const formula = "开仓保证金 = 合约面值 × 开仓价格 × 张数 ÷ 杠杆倍数";
-        const withExpr =
-          `开仓保证金 = ${d.faceValue} × ${d.price} × ${d.qty} ÷ ${d.leverage}`;
-        return { main, formula, withExpr };
+        const withVal = `开仓保证金 = ${d.faceValue} × ${d.price} × ${d.qty} ÷ ${d.leverage}`;
+        return { main, formula, withVal };
       }
     },
     {
@@ -618,7 +697,7 @@
       fields: [
         { key: "faceValue", label: "合约面值", placeholder: "例如 0.01", suffix: "" },
         { key: "qty", label: "仓位张数", placeholder: "可正可负，例如 100", suffix: "张" },
-        { key: "rate", label: "维持保证金率", placeholder: "例如 0.5", suffix: "%" },
+        { key: "rate", label: "维持保证金率", placeholder: "例如 0.5（代表 0.5%）", suffix: "%" },
         { key: "markPrice", label: "标记价格", placeholder: "例如 1000", suffix: "" }
       ],
       calc: (d) => {
@@ -627,9 +706,8 @@
         const mm = d.faceValue * absQty * rateDec * d.markPrice;
         const main = `当前维持保证金 ≈ ${mm.toFixed(4)} U`;
         const formula = "维持保证金 = 合约面值 × |张数| × 维持保证金率 × 标记价格";
-        const withExpr =
-          `维持保证金 = ${d.faceValue} × ${absQty} × ${d.rate}% × ${d.markPrice}`;
-        return { main, formula, withExpr };
+        const withVal = `维持保证金 = ${d.faceValue} × ${absQty} × ${rateDec} × ${d.markPrice}`;
+        return { main, formula, withVal };
       }
     },
     {
@@ -638,13 +716,13 @@
       tip: "输入保证金余额、未实现收益、合约面值、张数、标记价格、维持保证金率（%）和手续费率（%），估算当前保证金率。",
       subTitle: "保证金率 = (保证金余额 + 收益) ÷ [合约面值 × |张数| × 标记价格 × (维持保证金率 + 手续费率)]。",
       fields: [
-        { key: "balance", label: "保证金余额", placeholder: "例如 100", suffix: "" },
-        { key: "pnl", label: "未实现收益", placeholder: "亏损用负数，例如 -10", suffix: "" },
+        { key: "balance", label: "保证金余额", placeholder: "例如 100", suffix: "U" },
+        { key: "pnl", label: "未实现收益", placeholder: "亏损用负数，例如 -10", suffix: "U" },
         { key: "faceValue", label: "合约面值", placeholder: "例如 0.01", suffix: "" },
         { key: "qty", label: "仓位张数", placeholder: "可正可负，例如 100", suffix: "张" },
         { key: "markPrice", label: "标记价格", placeholder: "例如 1000", suffix: "" },
-        { key: "maintRate", label: "维持保证金率", placeholder: "例如 0.5", suffix: "%" },
-        { key: "feeRate", label: "手续费率", placeholder: "例如 0.02", suffix: "%" }
+        { key: "maintRate", label: "维持保证金率", placeholder: "例如 0.5（代表 0.5%）", suffix: "%" },
+        { key: "feeRate", label: "手续费率", placeholder: "例如 0.03（代表 0.03%）", suffix: "%" }
       ],
       calc: (d) => {
         const absQty = Math.abs(d.qty);
@@ -655,9 +733,10 @@
         const ratio = (d.balance + d.pnl) / denom;
         const main = `当前保证金率 ≈ ${(ratio * 100).toFixed(2)} %`;
         const formula = "保证金率 = (保证金余额 + 收益) ÷ [合约面值 × |张数| × 标记价格 × (维持保证金率 + 手续费率)]";
-        const withExpr =
-          `保证金率 = (${d.balance} + ${d.pnl}) ÷ [${d.faceValue} × ${absQty} × ${d.markPrice} × (${d.maintRate}% + ${d.feeRate}%)]`;
-        return { main, formula, withExpr };
+        const withVal =
+          `保证金率 = (${d.balance} + ${d.pnl}) ÷ ` +
+          `[${d.faceValue} × ${absQty} × ${d.markPrice} × (${maintDec} + ${feeDec})]`;
+        return { main, formula, withVal };
       }
     },
     {
@@ -666,9 +745,9 @@
       tip: "输入有效保证金、维持保证金和减仓手续费，计算跨币种全仓模式下的维持保证金率。",
       subTitle: "维持保证金率 = 有效保证金 ÷ (维持保证金 + 减仓手续费)。",
       fields: [
-        { key: "effectiveMargin", label: "有效保证金", placeholder: "例如 100", suffix: "" },
-        { key: "maintMargin", label: "维持保证金", placeholder: "例如 80", suffix: "" },
-        { key: "closeFee", label: "减仓手续费", placeholder: "例如 2", suffix: "" }
+        { key: "effectiveMargin", label: "有效保证金", placeholder: "例如 100", suffix: "U" },
+        { key: "maintMargin", label: "维持保证金", placeholder: "例如 80", suffix: "U" },
+        { key: "closeFee", label: "减仓手续费", placeholder: "例如 2", suffix: "U" }
       ],
       calc: (d) => {
         const denom = d.maintMargin + d.closeFee;
@@ -676,9 +755,8 @@
         const ratio = d.effectiveMargin / denom;
         const main = `跨币种全仓维持保证金率 ≈ ${(ratio * 100).toFixed(2)} %`;
         const formula = "维持保证金率 = 有效保证金 ÷ (维持保证金 + 减仓手续费)";
-        const withExpr =
-          `维持保证金率 = ${d.effectiveMargin} ÷ (${d.maintMargin} + ${d.closeFee})`;
-        return { main, formula, withExpr };
+        const withVal = `维持保证金率 = ${d.effectiveMargin} ÷ (${d.maintMargin} + ${d.closeFee})`;
+        return { main, formula, withVal };
       }
     },
     {
@@ -687,17 +765,16 @@
       tip: "输入合约面值、张数和标记价格，计算当前仓位价值。",
       subTitle: "仓位价值 = 合约面值 × 张数 × 标记价格。",
       fields: [
-        { key: "faceValue", label: "合约面值", placeholder: "例如 0.01", suffix: "" },
-        { key: "qty", label: "张数", placeholder: "整数，例如 100", suffix: "张" },
+        { key: "faceValue", label: "合约面值", placeholder: "例如 2", suffix: "" },
+        { key: "qty", label: "张数", placeholder: "整数，例如 1", suffix: "张" },
         { key: "markPrice", label: "标记价格", placeholder: "例如 1000", suffix: "" }
       ],
       calc: (d) => {
         const value = d.faceValue * d.qty * d.markPrice;
         const main = `当前仓位价值 ≈ ${value.toFixed(4)} U`;
         const formula = "仓位价值 = 合约面值 × 张数 × 标记价格";
-        const withExpr =
-          `仓位价值 = ${d.faceValue} × ${d.qty} × ${d.markPrice}`;
-        return { main, formula, withExpr };
+        const withVal = `仓位价值 = ${d.faceValue} × ${d.qty} × ${d.markPrice}`;
+        return { main, formula, withVal };
       }
     },
     {
@@ -706,24 +783,23 @@
       tip: "输入仓位价值和资金费率（%），计算当前资金费用。",
       subTitle: "资金费用 = 仓位价值 × 资金费率。",
       fields: [
-        { key: "positionValue", label: "仓位价值", placeholder: "例如 1000", suffix: "" },
-        { key: "fundingRate", label: "资金费率", placeholder: "例如 0.05", suffix: "%" }
+        { key: "positionValue", label: "仓位价值", placeholder: "例如 1000", suffix: "U" },
+        { key: "fundingRate", label: "资金费率", placeholder: "例如 0.03（代表 0.03%）", suffix: "%" }
       ],
       calc: (d) => {
         const rateDec = d.fundingRate / 100;
         const fee = d.positionValue * rateDec;
         const main = `本次资金费用 ≈ ${fee.toFixed(6)} U`;
         const formula = "资金费用 = 仓位价值 × 资金费率";
-        const withExpr =
-          `资金费用 = ${d.positionValue} × ${d.fundingRate}%`;
-        return { main, formula, withExpr };
+        const withVal = `资金费用 = ${d.positionValue} × ${rateDec}`;
+        return { main, formula, withVal };
       }
     },
     {
       id: "liqPrice",
       name: "预估强平价",
-      tip: "选择多仓或空仓，并输入保证金余额、合约面值、张数、开仓均价、维持保证金率（%）和手续费率（%），估算预估强平价。",
-      subTitle: "多仓 / 空仓各有一条公式，结果仅供参考。",
+      tip: "选择多仓或空仓，并输入保证金余额、合约面值、张数、开仓均价、维持保证金率（%）和手续费率（%），估算预估强平价（仅供参考）。",
+      subTitle: "多仓 / 空仓各有一条公式，结果仅作参考，具体以系统为准。",
       fields: [
         {
           key: "side",
@@ -734,50 +810,53 @@
             { value: "short", label: "空仓" }
           ]
         },
-        { key: "balance", label: "保证金余额", placeholder: "例如 100", suffix: "" },
+        { key: "balance", label: "保证金余额", placeholder: "例如 100", suffix: "U" },
         { key: "faceValue", label: "合约面值", placeholder: "例如 0.01", suffix: "" },
         { key: "qty", label: "张数", placeholder: "整数，例如 100", suffix: "张" },
         { key: "openPrice", label: "开仓均价", placeholder: "例如 1000", suffix: "" },
-        { key: "maintRate", label: "维持保证金率", placeholder: "例如 0.5", suffix: "%" },
-        { key: "feeRate", label: "手续费率", placeholder: "例如 0.02", suffix: "%" }
+        { key: "maintRate", label: "维持保证金率", placeholder: "例如 0.5（代表 0.5%）", suffix: "%" },
+        { key: "feeRate", label: "手续费率", placeholder: "例如 0.03（代表 0.03%）", suffix: "%" }
       ],
       calc: (d) => {
         const q = d.qty;
         if (q === 0) throw new Error("张数不能为 0。");
         const maintDec = d.maintRate / 100;
         const feeDec = d.feeRate / 100;
-        let price, formula, withExpr;
+        let price, formula, withVal;
         if (d.side === "long") {
           const denom = d.faceValue * q * (maintDec + feeDec - 1);
           if (denom === 0) throw new Error("分母为 0，请检查维持保证金率 + 手续费率 - 1。");
           price = (d.balance - d.faceValue * q * d.openPrice) / denom;
           formula =
             "多仓预估强平价 = [保证金余额 - 合约面值 × 张数 × 开仓均价] ÷ [合约面值 × 张数 × (维持保证金率 + 手续费率 - 1)]";
-          withExpr =
-            `多仓预估强平价 = (${d.balance} - ${d.faceValue} × ${q} × ${d.openPrice}) ÷ [${d.faceValue} × ${q} × (${d.maintRate}% + ${d.feeRate}% - 1)]`;
+          withVal =
+            `多仓预估强平价 = (${d.balance} - ${d.faceValue} × ${q} × ${d.openPrice}) ÷ ` +
+            `[${d.faceValue} × ${q} × (${maintDec} + ${feeDec} - 1)]`;
         } else {
           const denom = d.faceValue * q * (maintDec + feeDec + 1);
           if (denom === 0) throw new Error("分母为 0，请检查维持保证金率 + 手续费率 + 1。");
           price = (d.balance + d.faceValue * q * d.openPrice) / denom;
           formula =
             "空仓预估强平价 = [保证金余额 + 合约面值 × 张数 × 开仓均价] ÷ [合约面值 × 张数 × (维持保证金率 + 手续费率 + 1)]";
-          withExpr =
-            `空仓预估强平价 = (${d.balance} + ${d.faceValue} × ${q} × ${d.openPrice}) ÷ [${d.faceValue} × ${q} × (${d.maintRate}% + ${d.feeRate}% + 1)]`;
+          withVal =
+            `空仓预估强平价 = (${d.balance} + ${d.faceValue} × ${q} × ${d.openPrice}) ÷ ` +
+            `[${d.faceValue} × ${q} × (${maintDec} + ${feeDec} + 1)]`;
         }
         const main = `预估强平价 ≈ ${price.toFixed(4)} U（仅供参考）`;
-        return { main, formula, withExpr };
+        return { main, formula, withVal };
       }
     }
   ];
 
-  // ---------- DOM 绑定 ----------
+  // ------------ DOM 绑定 ------------
+
   const areaListEl = document.getElementById("areaList");
   const currentAreaTitleEl = document.getElementById("currentAreaTitle");
   const currentAreaDescEl = document.getElementById("currentAreaDesc");
   const areaPlaceholderEl = document.getElementById("areaPlaceholder");
   const uMainBodyEl = document.getElementById("uMainBody");
 
-  const selectEl = document.getElementById("uToolSelect");
+  const toolSelectEl = document.getElementById("toolSelect");
   const fieldListEl = document.getElementById("fieldList");
   const inputTipEl = document.getElementById("inputTip");
   const inputCardTitleEl = document.getElementById("inputCardTitle");
@@ -785,25 +864,37 @@
 
   const btnClear = document.getElementById("btnClear");
   const btnCalc = document.getElementById("btnCalc");
-  const btnCopy = document.getElementById("btnCopyResult");
   const statusTextEl = document.getElementById("statusText");
+
+  const formulaTextEl = document.getElementById("formulaText");
+  const withValTextEl = document.getElementById("withValText");
   const previewMainEl = document.getElementById("previewMain");
-  const previewExtraEl = document.getElementById("previewExtra");
+  const btnCopyResult = document.getElementById("btnCopyResult");
+
+  const historyListEl = document.getElementById("historyList");
 
   let currentToolId = uTools[0].id;
-  let lastCopyPayload = "";
+  let lastCopyText = "";
+  const historyRecords = []; // {toolId, toolName, main, data}
 
+  const sideLabelMap = {
+    long: "多仓",
+    short: "空仓"
+  };
+
+  // 渲染顶部下拉
   function renderToolSelect() {
-    selectEl.innerHTML = "";
-    uTools.forEach(tool => {
+    toolSelectEl.innerHTML = "";
+    uTools.forEach((tool) => {
       const opt = document.createElement("option");
       opt.value = tool.id;
       opt.textContent = tool.name;
-      selectEl.appendChild(opt);
+      if (tool.id === currentToolId) opt.selected = true;
+      toolSelectEl.appendChild(opt);
     });
-    selectEl.value = currentToolId;
   }
 
+  // 渲染输入项
   function renderFields(tool) {
     fieldListEl.innerHTML = "";
     tool.fields.forEach((f) => {
@@ -850,21 +941,27 @@
     });
   }
 
+  // 更新当前工具 UI
   function updateToolUI() {
     const tool = uTools.find((t) => t.id === currentToolId);
+    if (!tool) return;
+
+    toolSelectEl.value = currentToolId;
     inputCardTitleEl.textContent = "输入区：" + tool.name;
     inputCardSubEl.textContent = tool.subTitle;
     inputTipEl.textContent = tool.tip;
+
     renderFields(tool);
 
     statusTextEl.textContent = "";
     statusTextEl.classList.remove("status-error");
-    previewMainEl.textContent = "这里会显示：" + tool.name + " 的计算结果。";
-    previewExtraEl.innerHTML =
-      '<strong>公式说明：</strong>点击“开始计算”后，这里会显示该功能的公式以及代入数值的写法，方便复制到文档。';
-    lastCopyPayload = "";
+    formulaTextEl.textContent = "这里会显示当前功能对应的中文公式。";
+    withValTextEl.textContent = "点击“开始计算”后，这里会显示把你输入的数据代入后的写法。";
+    previewMainEl.textContent = "这里会显示：计算结果 + 关键中间值。";
+    lastCopyText = "";
   }
 
+  // 获取当前输入
   function getCurrentData() {
     const tool = uTools.find((t) => t.id === currentToolId);
     const data = {};
@@ -881,6 +978,7 @@
     return data;
   }
 
+  // 数字检查
   function checkNumbers(obj) {
     for (const [k, v] of Object.entries(obj)) {
       if (typeof v === "number" && Number.isNaN(v)) {
@@ -889,51 +987,152 @@
     }
   }
 
+  // 构建历史记录里的参数摘要
+  function buildParamSummary(tool, data) {
+    const parts = [];
+    for (let i = 0; i < tool.fields.length; i++) {
+      if (i >= 4) break; // 最多展示前四个
+      const f = tool.fields[i];
+      const v = data[f.key];
+      if (v === undefined || v === "" || Number.isNaN(v)) continue;
+      if (f.type === "select") {
+        const label = sideLabelMap[v] || v;
+        parts.push(`${f.label} ${label}`);
+      } else {
+        parts.push(`${f.label} ${v}`);
+      }
+    }
+    return parts.join(" · ");
+  }
+
+  // 渲染历史记录
+  function renderHistory() {
+    historyListEl.innerHTML = "";
+    if (!historyRecords.length) {
+      const empty = document.createElement("div");
+      empty.className = "history-sub";
+      empty.textContent = "暂时还没有记录。完成一次计算后，这里会展示最近的结果，方便对比和恢复输入。";
+      historyListEl.appendChild(empty);
+      return;
+    }
+
+    historyRecords.forEach((rec, idx) => {
+      const tool = uTools.find((t) => t.id === rec.toolId);
+      const item = document.createElement("div");
+      item.className = "history-item";
+
+      const left = document.createElement("div");
+      const mainLine = document.createElement("div");
+      mainLine.className = "history-main";
+      mainLine.textContent = `${rec.toolName} · ${rec.main}`;
+      const subLine = document.createElement("div");
+      subLine.className = "history-sub";
+      subLine.textContent = buildParamSummary(tool, rec.data);
+
+      left.appendChild(mainLine);
+      left.appendChild(subLine);
+
+      const btn = document.createElement("button");
+      btn.className = "history-btn";
+      btn.textContent = "恢复输入";
+      btn.onclick = () => {
+        // 切换工具
+        currentToolId = rec.toolId;
+        updateToolUI();
+        const toolNow = uTools.find((t) => t.id === rec.toolId);
+        // 回填数据
+        toolNow.fields.forEach((f) => {
+          const el = document.getElementById("field_" + f.key);
+          if (!el) return;
+          if (f.type === "select") {
+            el.value = rec.data[f.key];
+          } else {
+            const v = rec.data[f.key];
+            if (typeof v === "number" && !Number.isNaN(v)) {
+              el.value = v;
+            } else if (v !== undefined && v !== null) {
+              el.value = v;
+            }
+          }
+        });
+        statusTextEl.textContent = "已恢复该次记录的输入数据，请确认后重新计算。";
+        statusTextEl.classList.remove("status-error");
+      };
+
+      item.appendChild(left);
+      item.appendChild(btn);
+      historyListEl.appendChild(item);
+    });
+  }
+
+  // 添加历史记录
+  function pushHistory(tool, data, main) {
+    historyRecords.unshift({
+      toolId: tool.id,
+      toolName: tool.name,
+      main,
+      data: { ...data }
+    });
+    if (historyRecords.length > 5) historyRecords.pop();
+    renderHistory();
+  }
+
+  // 计算按钮
   btnCalc.onclick = () => {
     try {
       const tool = uTools.find((t) => t.id === currentToolId);
       const data = getCurrentData();
       checkNumbers(data);
-      const { main, formula, withExpr } = tool.calc(data);
+      const { main, formula, withVal } = tool.calc(data);
+
+      formulaTextEl.textContent = formula;
+      withValTextEl.textContent = withVal;
       previewMainEl.textContent = main;
-      previewExtraEl.innerHTML =
-        `<strong>公式：</strong>${formula}\n\n<strong>代入数值：</strong>\n${withExpr}`;
+
+      // 复制用内容：公式行 + 代入数值行 + 结果行
+      lastCopyText = `${formula}\n${withVal}\n${main}`;
+
       statusTextEl.textContent = "计算完成。结果仅供参考。";
       statusTextEl.classList.remove("status-error");
-      lastCopyPayload = `${formula}\n${withExpr}\n${main}`;
+
+      pushHistory(tool, data, main);
     } catch (e) {
       statusTextEl.textContent = e.message || "计算失败，请检查输入。";
       statusTextEl.classList.add("status-error");
-      lastCopyPayload = "";
     }
   };
 
+  // 清空按钮
   btnClear.onclick = () => {
     Array.from(fieldListEl.querySelectorAll("input.field-input")).forEach((el) => {
       el.value = "";
     });
     statusTextEl.textContent = "已清空输入。";
     statusTextEl.classList.remove("status-error");
+    formulaTextEl.textContent = "这里会显示当前功能对应的中文公式。";
+    withValTextEl.textContent = "点击“开始计算”后，这里会显示把你输入的数据代入后的写法。";
     previewMainEl.textContent = "这里会显示：计算结果 + 关键中间值。";
-    previewExtraEl.innerHTML =
-      '<strong>公式说明：</strong>选择上方的功能后，点击“开始计算”，这里会展示对应的中文公式，以及把你输入的数据代入后的公式，方便复制到文档或截图保存。';
-    lastCopyPayload = "";
+    lastCopyText = "";
   };
 
-  btnCopy.onclick = async () => {
+  // 复制结果
+  btnCopyResult.onclick = async () => {
+    if (!lastCopyText) {
+      statusTextEl.textContent = "暂无可复制的结果，请先完成一次计算。";
+      statusTextEl.classList.add("status-error");
+      return;
+    }
     try {
-      const text = lastCopyPayload ||
-        (previewExtraEl.textContent.trim() + "\n" + previewMainEl.textContent.trim());
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(lastCopyText);
       statusTextEl.textContent = "已复制当前结果到剪贴板。";
       statusTextEl.classList.remove("status-error");
     } catch (e) {
-      statusTextEl.textContent = "复制失败，请手动选择文本复制。";
+      statusTextEl.textContent = "复制失败，请手动选中内容复制。";
       statusTextEl.classList.add("status-error");
     }
   };
 
-  // 一级交易区切换：目前只有 U 本位是可用，其它给提示
+  // 一级交易区切换：目前只有 U 本位是可用
   areaListEl.addEventListener("click", (e) => {
     const item = e.target.closest(".area-item");
     if (!item) return;
@@ -958,15 +1157,10 @@
     }
   });
 
-  // 下拉切换工具
-  selectEl.addEventListener("change", () => {
-    currentToolId = selectEl.value;
-    updateToolUI();
-  });
-
   // 初始化
   renderToolSelect();
   updateToolUI();
+  renderHistory();
 </script>
 </body>
 </html>
