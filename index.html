@@ -1,99 +1,155 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-<title>交易计算工具（内部用）</title>
-<link rel="stylesheet" href="common.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>交易计算工具（内部用）</title>
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    /* 这里只是补充一些局部样式，跟 common.css 共存 */
 
-<style>
-/* ↓ 只是新功能需要补的样式，不会影响你的原主题 ↓ */
+    .main-headline-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+    .tool-select-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #c4d1ff;
+    }
+    .tool-select {
+      border-radius: 999px;
+      padding: 6px 12px;
+      border: 1px solid rgba(107,133,209,.9);
+      background: rgba(5,10,32,.9);
+      color: #f5f7ff;
+      font-size: 13px;
+      outline: none;
+    }
+    .tool-select:focus {
+      border-color: #a9c4ff;
+      box-shadow: 0 0 0 1px rgba(80,140,255,.6);
+    }
 
-.main-headline-row {
-  display: flex; justify-content: space-between; align-items: center;
-  gap: 12px; margin-bottom: 4px;
-}
-.tool-select-wrap { display: flex; align-items: center; gap: 6px;
-  font-size: 13px; color: #c4d1ff;
-}
-.tool-select {
-  border-radius: 999px; padding: 6px 12px;
-  border: 1px solid rgba(107,133,209,.9);
-  background: rgba(5,10,32,.9); color: #f5f7ff;
-  font-size: 13px; outline: none;
-}
-.tool-select:focus {
-  border-color: #a9c4ff; box-shadow: 0 0 0 1px rgba(80,140,255,.6);
-}
+    .history-block {
+      margin-top: 10px;
+      border-radius: 10px;
+      padding: 8px 11px;
+      background: rgba(6,14,44,0.95);
+      border: 1px solid rgba(88,118,220,0.8);
+      font-size: 11px;
+      color: #c3d0ff;
+    }
+    .history-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #e4ebff;
+      margin-bottom: 4px;
+    }
+    .history-list {
+      max-height: 120px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .history-item {
+      font-size: 11px;
+      line-height: 1.6;
+      color: #b6c3ff;
+      opacity: .95;
+    }
+    .history-item + .history-item {
+      margin-top: 3px;
+      border-top: 1px dashed rgba(120,140,230,.4);
+      padding-top: 3px;
+    }
 
-/* 历史记录 */
-.history-block {
-  margin-top: 10px; border-radius: 10px; padding: 8px 11px;
-  background: rgba(6,14,44,0.95); border: 1px solid rgba(88,118,220,0.8);
-  font-size: 11px; color: #c3d0ff;
-}
-.history-title { font-size: 12px; font-weight: 600; color: #e4ebff; margin-bottom:4px;}
-.history-list { max-height: 120px; overflow-y: auto; padding-right:4px;}
-.history-item { font-size:11px; line-height:1.6; color:#b6c3ff; opacity:.95;}
-.history-item + .history-item { margin-top:3px; border-top:1px dashed rgba(120,140,230,.4); padding-top:3px;}
+    .copy-btn {
+      margin-top: 6px;
+      background: #204cff;
+      color: #fff;
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      border: none;
+    }
+    .copy-btn:hover { opacity: .85; }
 
-@media (max-width:1100px){
-  .main-headline-row{flex-direction:column; align-items:flex-start; gap:6px;}
-}
-.copy-btn{
-  margin-top:6px; background:#204cff; color:#fff; padding:4px 10px; font-size:12px;
-  border-radius:999px; cursor:pointer;
-}
-.copy-btn:hover{opacity:.85;}
-</style>
+    @media (max-width: 1100px) {
+      .main-headline-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+    }
+  </style>
 </head>
 
 <body>
 <div class="page-grid">
-  <!-- 左边：一级选择交易区 -->
+  <!-- 左边：交易区 -->
   <aside class="sidebar">
     <h2 class="tool-title">交易计算工具</h2>
-    <p class="tool-desc">一个页面搞定：U 本位 / 币本位合约、现货杠杆、现货开仓均价、期权 5 种计算。先选择交易区，再选计算项目，右侧输入数据即可看到结果和中文公式说明。</p>
+    <p class="tool-desc">
+      一个页面搞定：U 本位 / 币本位合约、现货杠杆、现货开仓均价、期权 5 种计算。
+      先选择交易区，再选计算项目，右侧输入数据即可看到结果和中文公式说明。
+    </p>
 
     <div class="sidebar-block">
-      <div class="sidebar-title">一级 · 选择交易区</div>
+      <div class="sidebar-title">交易区</div>
 
-      <button class="sidebar-btn active">U 本位合约<br/><span>逐笔 / 全仓：开仓均价、合约收益、保证金、强平价等</span></button>
+      <button class="sidebar-btn active">
+        U 本位合约
+        <br /><span>逐笔 / 全仓：开仓均价、合约收益、保证金、强平价等</span>
+      </button>
       <button class="sidebar-btn disabled">币本位合约（开发中）</button>
       <button class="sidebar-btn disabled">现货杠杆（开发中）</button>
       <button class="sidebar-btn disabled">现货开仓均价（开发中）</button>
       <button class="sidebar-btn disabled">期权（开发中）</button>
     </div>
+
+    <p class="sidebar-tip">
+      提示：左侧切换不同功能，右侧内容区域即时刷新。
+      不会跳转页面 / 不刷新链接，适合公司电脑固定打开当工具使用。
+    </p>
   </aside>
 
-  <!-- 右侧主内容 -->
+  <!-- 右侧：主内容 -->
   <main class="main">
-    <!-- 标题 + 下拉 -->
+    <!-- 顶部：标题 + 计算项目下拉 -->
     <div>
       <div class="main-headline-row">
         <div class="main-headline" id="currentAreaTitle">当前交易区：U 本位合约</div>
 
         <div class="tool-select-wrap">
-          <span class="tool-select-label">计算项目：</span>
+          <span>计算项目：</span>
           <select id="toolSelect" class="tool-select"></select>
         </div>
       </div>
 
       <div class="main-desc" id="currentAreaDesc">
-        以 USDT 结算的合约：支持开仓均价、合约收益、收益率、保证金、仓位价值、资金费率、预估强平价等计算。
+        以 USDT 结算的合约：支持开仓均价、合约收益、收益率、
+        保证金、仓位价值、资金费用、预估强平价等计算。
       </div>
     </div>
 
-    <!-- 中：输入区 -->
+    <!-- 左卡片：输入区 -->
     <section class="card">
       <div class="card-header">
         <div>
           <div class="card-title" id="inputCardTitle">输入区</div>
-          <div class="card-subtitle" id="inputCardSub">请输入相关参数用于计算。</div>
+          <div class="card-subtitle" id="inputCardSub">根据选择的功能，输入相应的数据。</div>
         </div>
       </div>
 
-      <p class="input-tip" id="inputTip">根据上方选择的功能，这里会出现对应的输入项。</p>
+      <p class="input-tip" id="inputTip">
+        选择上方的计算项目后，这里会显示对应的输入项说明和示例。
+      </p>
 
       <div class="field-list" id="fieldList"></div>
 
@@ -105,7 +161,7 @@
       <p class="input-status" id="inputStatus"></p>
     </section>
 
-    <!-- 右：结果预览 -->
+    <!-- 右卡片：结果预览 + 历史记录 -->
     <section class="card">
       <div class="card-header">
         <div>
@@ -119,7 +175,9 @@
       </div>
 
       <div class="preview-extra" id="previewExtra">
-        <strong>公式说明：</strong>选择上方功能后，点击“开始计算”，这里会展示对应的中文公式，以及代入数值，方便复制到文档或截图保存。
+        <strong>公式说明：</strong>
+        选择上方功能后，点击“开始计算”，这里会展示对应的中文公式和代入数值写法，
+        方便复制到文档或截图保存。
       </div>
 
       <button id="btnCopy" class="copy-btn">复制结果</button>
@@ -129,7 +187,9 @@
         <div class="history-list" id="historyList">暂无记录。</div>
       </div>
 
-      <div class="version">本工具仅作内部计算参考，请以系统实际数据为准。版本：v1.0（示例）</div>
+      <div class="version">
+        本工具仅作内部计算参考，请以系统实际数据为准。版本：v1.0（示例）
+      </div>
     </section>
   </main>
 </div>
