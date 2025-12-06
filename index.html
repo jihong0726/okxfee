@@ -514,20 +514,21 @@
     {
       id: "fee",
       name: "手续费",
-      tip: "输入合约面值、张数、开/平仓均价、手续费率，计算单次交易手续费。",
-      subTitle: "输入合约面值、张数、开/平仓均价、手续费率，计算单次交易手续费。",
+      tip: "输入合约面值、张数、开/平仓均价、手续费率（%），计算单次交易手续费。",
+      subTitle: "输入合约面值、张数、开/平仓均价、手续费率（%），计算单次交易手续费。",
       fields: [
         { key: "faceValue", label: "合约面值", placeholder: "例如 0.01", suffix: "" },
         { key: "qty", label: "张数", placeholder: "整数，例如 100", suffix: "张" },
         { key: "price", label: "开/平仓均价", placeholder: "例如 1000", suffix: "" },
-        { key: "rate", label: "手续费率", placeholder: "小数，例如 0.0005", suffix: "" }
+        { key: "rate", label: "手续费率", placeholder: "例如 0.05", suffix: "%" }
       ],
       calc: (d) => {
-        const fee = d.faceValue * d.qty * d.price * d.rate;
+        const rateDec = d.rate / 100; // 百分比转小数
+        const fee = d.faceValue * d.qty * d.price * rateDec;
         const main = `本次手续费 ≈ ${fee.toFixed(6)} U`;
         const formula = "手续费 = 合约面值 × 张数 × 开/平仓均价 × 手续费率";
         const withExpr =
-          `手续费 = ${d.faceValue} × ${d.qty} × ${d.price} × ${d.rate}`;
+          `手续费 = ${d.faceValue} × ${d.qty} × ${d.price} × ${d.rate}%`;
         return { main, formula, withExpr };
       }
     },
@@ -612,28 +613,29 @@
     {
       id: "maintMargin",
       name: "维持保证金",
-      tip: "输入合约面值、仓位张数、维持保证金率和标记价格，计算当前需要的维持保证金。",
+      tip: "输入合约面值、仓位张数、维持保证金率（%）和标记价格，计算当前需要的维持保证金。",
       subTitle: "维持保证金 = 合约面值 × |张数| × 维持保证金率 × 标记价格。",
       fields: [
         { key: "faceValue", label: "合约面值", placeholder: "例如 0.01", suffix: "" },
         { key: "qty", label: "仓位张数", placeholder: "可正可负，例如 100", suffix: "张" },
-        { key: "rate", label: "维持保证金率", placeholder: "小数，例如 0.005", suffix: "" },
+        { key: "rate", label: "维持保证金率", placeholder: "例如 0.5", suffix: "%" },
         { key: "markPrice", label: "标记价格", placeholder: "例如 1000", suffix: "" }
       ],
       calc: (d) => {
         const absQty = Math.abs(d.qty);
-        const mm = d.faceValue * absQty * d.rate * d.markPrice;
+        const rateDec = d.rate / 100;
+        const mm = d.faceValue * absQty * rateDec * d.markPrice;
         const main = `当前维持保证金 ≈ ${mm.toFixed(4)} U`;
         const formula = "维持保证金 = 合约面值 × |张数| × 维持保证金率 × 标记价格";
         const withExpr =
-          `维持保证金 = ${d.faceValue} × ${absQty} × ${d.rate} × ${d.markPrice}`;
+          `维持保证金 = ${d.faceValue} × ${absQty} × ${d.rate}% × ${d.markPrice}`;
         return { main, formula, withExpr };
       }
     },
     {
       id: "marginRatio",
       name: "当前保证金率",
-      tip: "输入保证金余额、未实现收益、合约面值、张数、标记价格、维持保证金率和手续费率，估算当前保证金率。",
+      tip: "输入保证金余额、未实现收益、合约面值、张数、标记价格、维持保证金率（%）和手续费率（%），估算当前保证金率。",
       subTitle: "保证金率 = (保证金余额 + 收益) ÷ [合约面值 × |张数| × 标记价格 × (维持保证金率 + 手续费率)]。",
       fields: [
         { key: "balance", label: "保证金余额", placeholder: "例如 100", suffix: "" },
@@ -641,18 +643,20 @@
         { key: "faceValue", label: "合约面值", placeholder: "例如 0.01", suffix: "" },
         { key: "qty", label: "仓位张数", placeholder: "可正可负，例如 100", suffix: "张" },
         { key: "markPrice", label: "标记价格", placeholder: "例如 1000", suffix: "" },
-        { key: "maintRate", label: "维持保证金率", placeholder: "小数，例如 0.005", suffix: "" },
-        { key: "feeRate", label: "手续费率", placeholder: "小数，例如 0.0005", suffix: "" }
+        { key: "maintRate", label: "维持保证金率", placeholder: "例如 0.5", suffix: "%" },
+        { key: "feeRate", label: "手续费率", placeholder: "例如 0.02", suffix: "%" }
       ],
       calc: (d) => {
         const absQty = Math.abs(d.qty);
-        const denom = d.faceValue * absQty * d.markPrice * (d.maintRate + d.feeRate);
+        const maintDec = d.maintRate / 100;
+        const feeDec = d.feeRate / 100;
+        const denom = d.faceValue * absQty * d.markPrice * (maintDec + feeDec);
         if (denom === 0) throw new Error("分母为 0，请检查面值 / 张数 / 标记价格 / 维持保证金率 / 手续费率。");
         const ratio = (d.balance + d.pnl) / denom;
         const main = `当前保证金率 ≈ ${(ratio * 100).toFixed(2)} %`;
         const formula = "保证金率 = (保证金余额 + 收益) ÷ [合约面值 × |张数| × 标记价格 × (维持保证金率 + 手续费率)]";
         const withExpr =
-          `保证金率 = (${d.balance} + ${d.pnl}) ÷ [${d.faceValue} × ${absQty} × ${d.markPrice} × (${d.maintRate} + ${d.feeRate})]`;
+          `保证金率 = (${d.balance} + ${d.pnl}) ÷ [${d.faceValue} × ${absQty} × ${d.markPrice} × (${d.maintRate}% + ${d.feeRate}%)]`;
         return { main, formula, withExpr };
       }
     },
@@ -699,25 +703,26 @@
     {
       id: "funding",
       name: "资金费用",
-      tip: "输入仓位价值和资金费率，计算当前资金费用。",
+      tip: "输入仓位价值和资金费率（%），计算当前资金费用。",
       subTitle: "资金费用 = 仓位价值 × 资金费率。",
       fields: [
         { key: "positionValue", label: "仓位价值", placeholder: "例如 1000", suffix: "" },
-        { key: "fundingRate", label: "资金费率", placeholder: "小数，例如 0.0005", suffix: "" }
+        { key: "fundingRate", label: "资金费率", placeholder: "例如 0.05", suffix: "%" }
       ],
       calc: (d) => {
-        const fee = d.positionValue * d.fundingRate;
+        const rateDec = d.fundingRate / 100;
+        const fee = d.positionValue * rateDec;
         const main = `本次资金费用 ≈ ${fee.toFixed(6)} U`;
         const formula = "资金费用 = 仓位价值 × 资金费率";
         const withExpr =
-          `资金费用 = ${d.positionValue} × ${d.fundingRate}`;
+          `资金费用 = ${d.positionValue} × ${d.fundingRate}%`;
         return { main, formula, withExpr };
       }
     },
     {
       id: "liqPrice",
       name: "预估强平价",
-      tip: "选择多仓或空仓，并输入保证金余额、合约面值、张数、开仓均价、维持保证金率和手续费率，估算预估强平价。",
+      tip: "选择多仓或空仓，并输入保证金余额、合约面值、张数、开仓均价、维持保证金率（%）和手续费率（%），估算预估强平价。",
       subTitle: "多仓 / 空仓各有一条公式，结果仅供参考。",
       fields: [
         {
@@ -733,29 +738,31 @@
         { key: "faceValue", label: "合约面值", placeholder: "例如 0.01", suffix: "" },
         { key: "qty", label: "张数", placeholder: "整数，例如 100", suffix: "张" },
         { key: "openPrice", label: "开仓均价", placeholder: "例如 1000", suffix: "" },
-        { key: "maintRate", label: "维持保证金率", placeholder: "小数，例如 0.005", suffix: "" },
-        { key: "feeRate", label: "手续费率", placeholder: "小数，例如 0.0005", suffix: "" }
+        { key: "maintRate", label: "维持保证金率", placeholder: "例如 0.5", suffix: "%" },
+        { key: "feeRate", label: "手续费率", placeholder: "例如 0.02", suffix: "%" }
       ],
       calc: (d) => {
         const q = d.qty;
         if (q === 0) throw new Error("张数不能为 0。");
+        const maintDec = d.maintRate / 100;
+        const feeDec = d.feeRate / 100;
         let price, formula, withExpr;
         if (d.side === "long") {
-          const denom = d.faceValue * q * (d.maintRate + d.feeRate - 1);
+          const denom = d.faceValue * q * (maintDec + feeDec - 1);
           if (denom === 0) throw new Error("分母为 0，请检查维持保证金率 + 手续费率 - 1。");
           price = (d.balance - d.faceValue * q * d.openPrice) / denom;
           formula =
             "多仓预估强平价 = [保证金余额 - 合约面值 × 张数 × 开仓均价] ÷ [合约面值 × 张数 × (维持保证金率 + 手续费率 - 1)]";
           withExpr =
-            `多仓预估强平价 = (${d.balance} - ${d.faceValue} × ${q} × ${d.openPrice}) ÷ [${d.faceValue} × ${q} × (${d.maintRate} + ${d.feeRate} - 1)]`;
+            `多仓预估强平价 = (${d.balance} - ${d.faceValue} × ${q} × ${d.openPrice}) ÷ [${d.faceValue} × ${q} × (${d.maintRate}% + ${d.feeRate}% - 1)]`;
         } else {
-          const denom = d.faceValue * q * (d.maintRate + d.feeRate + 1);
+          const denom = d.faceValue * q * (maintDec + feeDec + 1);
           if (denom === 0) throw new Error("分母为 0，请检查维持保证金率 + 手续费率 + 1。");
           price = (d.balance + d.faceValue * q * d.openPrice) / denom;
           formula =
             "空仓预估强平价 = [保证金余额 + 合约面值 × 张数 × 开仓均价] ÷ [合约面值 × 张数 × (维持保证金率 + 手续费率 + 1)]";
           withExpr =
-            `空仓预估强平价 = (${d.balance} + ${d.faceValue} × ${q} × ${d.openPrice}) ÷ [${d.faceValue} × ${q} × (${d.maintRate} + ${d.feeRate} + 1)]`;
+            `空仓预估强平价 = (${d.balance} + ${d.faceValue} × ${q} × ${d.openPrice}) ÷ [${d.faceValue} × ${q} × (${d.maintRate}% + ${d.feeRate}% + 1)]`;
         }
         const main = `预估强平价 ≈ ${price.toFixed(4)} U（仅供参考）`;
         return { main, formula, withExpr };
