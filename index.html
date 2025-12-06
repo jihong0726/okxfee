@@ -279,10 +279,13 @@
     }
 
     .btn-row {
-      display: flex;
-      gap: 10px;
-      margin-top: 4px;
-    }
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;     /* 想更靠下可以调这个值 */
+  justify-content: center;  /* 关键：让按钮在这一行居中 */
+  align-items: center;
+}
+
     .btn {
       border-radius: 999px;
       padding: 7px 18px;
